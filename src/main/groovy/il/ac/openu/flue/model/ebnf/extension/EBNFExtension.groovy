@@ -1,8 +1,8 @@
-package il.ac.openu.flue.processor.ebnf.extension
+package il.ac.openu.flue.model.ebnf.extension
 
-import il.ac.openu.flue.processor.ebnf.element.*
-import il.ac.openu.flue.processor.ebnf.element.AndList
-import il.ac.openu.flue.processor.ebnf.element.RuleElement
+import il.ac.openu.flue.model.ebnf.element.*
+import il.ac.openu.flue.model.ebnf.element.AndList
+import il.ac.openu.flue.model.ebnf.element.RuleElement
 
 /**
  * @author Noam Rotem

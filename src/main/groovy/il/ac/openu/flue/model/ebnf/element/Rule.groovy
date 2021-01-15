@@ -1,8 +1,4 @@
-package il.ac.openu.flue.processor.ebnf.element
-
-import il.ac.openu.flue.processor.ebnf.element.AndList
-import il.ac.openu.flue.processor.ebnf.element.OrList
-
+package il.ac.openu.flue.model.ebnf.element
 /**
  * @author Noam Rotem
  */

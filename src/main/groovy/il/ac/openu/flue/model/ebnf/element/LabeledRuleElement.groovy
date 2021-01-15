@@ -1,4 +1,4 @@
-package il.ac.openu.flue.processor.ebnf.element
+package il.ac.openu.flue.model.ebnf.element
 
 import groovy.transform.SelfType
 

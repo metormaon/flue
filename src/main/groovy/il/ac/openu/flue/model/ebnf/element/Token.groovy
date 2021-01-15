@@ -1,7 +1,4 @@
-package il.ac.openu.flue.processor.ebnf.element
-
-import il.ac.openu.flue.processor.ebnf.element.RuleElement
-
+package il.ac.openu.flue.model.ebnf.element
 /**
  * @author Noam Rotem
  */
