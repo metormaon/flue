@@ -1,0 +1,30 @@
+plugins {
+    id 'groovy'
+    id 'application'
+}
+
+group 'il.ac.openu'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.5'//, ext: 'pom'
+    testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.0-M3-groovy-3.0'
+}
+
+jar {
+    from ('./src/main/groovy') {
+        include './META-INF/services/org.codehaus.groovy.runtime.ExtensionModule'
+    }
+}
+
+test {
+    dependsOn jar
+
+    classpath = project.sourceSets.test.output + configurations.testRuntimeClasspath + files(jar.archiveFile)
+
+    useJUnitPlatform()
+}

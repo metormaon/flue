@@ -1,0 +1,3 @@
+moduleName=ebnf
+moduleVersion=1.0
+extensionClasses=il.ac.openu.flue.processor.ebnf.extension.EBNFExtension
