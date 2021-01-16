@@ -192,7 +192,7 @@ class AutomatonTest extends Specification {
                     "from=" + (innerName(from) ?: from) +
                     ", to=" + (innerName(to) ?: to) +
                     ", value=" + value +
-                    '}';
+                    '}'
         }
 
         static String innerName(Automaton.State state) {
