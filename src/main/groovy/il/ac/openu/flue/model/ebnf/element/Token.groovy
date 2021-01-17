@@ -13,4 +13,9 @@ class Token implements RuleElement {
     String toString() {
         "\"" + regex + "\""
     }
+
+    @Override
+    void acceptVisitor(RuleElementVisitor visitor) {
+        visitor.visitToken(this)
+    }
 }

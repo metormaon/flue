@@ -11,9 +11,9 @@ trait RuleElement {
         Object o = c()
 
         if (o instanceof RuleElement) {
-            new AndList(this, new ZeroOrMore(o))
+            new AndList(this, new OneOrMore(o))
         } else if (o instanceof AndList) {
-            new AndList(this, new ZeroOrMore(o.getElements()))
+            new AndList(this, new OneOrMore(o.getElements()))
         } else throw new RuntimeException("Illegal closure type")
     }
 
@@ -32,4 +32,6 @@ trait RuleElement {
     OrList or(String s) {
         new OrList(this, new Token(s))
     }
+
+    abstract void acceptVisitor(RuleElementVisitor visitor)
 }

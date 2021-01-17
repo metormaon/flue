@@ -26,9 +26,9 @@ class AndList {
         Object o = c()
 
         if (o instanceof RuleElement) {
-            elements.add(new ZeroOrMore(o))
+            elements.add(new OneOrMore(o))
         } else if (o instanceof AndList) {
-            elements.add(new ZeroOrMore((o as AndList).getElements()))
+            elements.add(new OneOrMore((o as AndList).getElements()))
         } else throw new RuntimeException("Illegal closure type")
 
         this

@@ -7,19 +7,19 @@ import il.ac.openu.flue.model.ebnf.element.*
  */
 class EBNFExtension {
     static AndList and(Closure<RuleElement> self, RuleElement e) {
-        new AndList(new ZeroOrMore(self()), e)
+        new AndList(new OneOrMore(self()), e)
     }
 
     static AndList and(Closure<RuleElement> self, Closure<RuleElement> c) {
-        new AndList(new ZeroOrMore(self()), new ZeroOrMore(c()))
+        new AndList(new OneOrMore(self()), new OneOrMore(c()))
     }
 
     static AndList and(Closure<RuleElement> self, List<RuleElement> l) {
-        new AndList(new ZeroOrMore(self()), new ZeroOrOne(l[0]))
+        new AndList(new OneOrMore(self()), new ZeroOrOne(l[0]))
     }
 
     static AndList and(Closure<RuleElement> self, String s) {
-        new AndList(new ZeroOrMore(self()), new Token(s))
+        new AndList(new OneOrMore(self()), new Token(s))
     }
 
     static AndList and(String self, RuleElement r) {
@@ -51,7 +51,7 @@ class EBNFExtension {
     }
 
     static AndList and(List<RuleElement> self, Closure<RuleElement> c) {
-        new AndList(new ZeroOrOne(self[0]), new ZeroOrMore(c()))
+        new AndList(new ZeroOrOne(self[0]), new OneOrMore(c()))
     }
 
     static AndList and(List<RuleElement> self, List<RuleElement> l) {

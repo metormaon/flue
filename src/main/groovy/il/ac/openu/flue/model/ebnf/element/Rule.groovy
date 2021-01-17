@@ -4,7 +4,7 @@ package il.ac.openu.flue.model.ebnf.element
  */
 class Rule {
     final Variable variable
-    private final List<RuleOption> options = []
+    final List<RuleOption> options = []
 
     Rule(Variable v, RuleElement e) {
         variable = v
@@ -32,9 +32,9 @@ class Rule {
         Object o = c()
 
         if (o instanceof RuleElement) {
-            options.last().add(new ZeroOrMore(o))
+            options.last().add(new OneOrMore(o))
         } else if (o instanceof AndList) {
-            options.last().add(new ZeroOrMore((o as AndList).getElements()))
+            options.last().add(new OneOrMore((o as AndList).getElements()))
         } else throw new RuntimeException("Illegal closure type")
 
         this
@@ -74,7 +74,7 @@ class Rule {
     }
 
     Rule or(Closure<RuleElement> c) {
-        options.add(new RuleOption(new ZeroOrMore(c())))
+        options.add(new RuleOption(new OneOrMore(c())))
         this
     }
 

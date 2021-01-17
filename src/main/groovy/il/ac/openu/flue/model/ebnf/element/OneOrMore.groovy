@@ -2,19 +2,24 @@ package il.ac.openu.flue.model.ebnf.element
 /**
  * @author Noam Rotem
  */
-class ZeroOrMore implements RuleElement {
+class OneOrMore implements RuleElement {
     List<RuleElement> elements = []
 
-    ZeroOrMore(RuleElement e) {
+    OneOrMore(RuleElement e) {
         elements.add(e)
     }
 
-    ZeroOrMore(List<RuleElement> l) {
+    OneOrMore(List<RuleElement> l) {
         elements.addAll(l)
     }
 
     @Override
     String toString() {
         "{" + elements.join(" ") + "}"
+    }
+
+    @Override
+    void acceptVisitor(RuleElementVisitor visitor) {
+        visitor.visitOneOrMore(this)
     }
 }

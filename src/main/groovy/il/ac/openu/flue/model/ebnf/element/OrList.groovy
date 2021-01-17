@@ -16,8 +16,13 @@ class OrList implements RuleElement {
         this
     }
 
+    @Override
+    void acceptVisitor(RuleElementVisitor visitor) {
+        visitor.visitOrList(this)
+    }
+
     OrList or(Closure<RuleElement> c) {
-        elements.add(new ZeroOrMore(c()))
+        elements.add(new OneOrMore(c()))
         this
     }
 

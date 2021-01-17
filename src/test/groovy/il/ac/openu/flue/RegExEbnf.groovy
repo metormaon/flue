@@ -1,7 +1,9 @@
 package il.ac.openu.flue
 
 import il.ac.openu.flue.model.ebnf.EBNF
+import il.ac.openu.flue.model.ebnf.element.Rule
 import il.ac.openu.flue.model.ebnf.element.Variable
+import il.ac.openu.flue.pipeline.GrammarToNFA
 
 import static il.ac.openu.flue.RegExEbnf.V.*
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
@@ -128,6 +130,6 @@ class RegExEbnf {
             Char >> "#x9" | "#xA" | "#xD" | "[#x20-#xD7FF]" | "[#xE000-#xFFFD]" | "[#x10000-#x10FFFF]"
         }
 
-        println(regex.toString())
+        regex.rules.forEach {println(GrammarToNFA.fromRule(it as Rule))}
     }
 }

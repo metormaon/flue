@@ -4,9 +4,19 @@ package il.ac.openu.flue.model.automaton
  * @author Noam Rotem
  */
 class Automaton implements Iterable<State> {
+    @Override
+    String toString() {
+        return "Automaton{" +
+                "entryState=" + entryState.id +
+                ", finalState=" + finalState.id +
+                ", states=" + iterator().collect() +
+                '}'
+    }
+
     class State {
+        static int index = 0
         final Set<Transition> transitions = new HashSet<>()
-        final String id = Integer.toUnsignedString(new Random().nextInt(), 16)
+        final String id = "<" + index++ + ">"
 
         @Override
         String toString() {
@@ -194,4 +204,6 @@ class Automaton implements Iterable<State> {
     static Automaton zeroOrMore(Automaton a) {
         optional(oneOrMore(a))
     }
+
+
 }

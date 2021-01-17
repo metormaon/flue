@@ -17,4 +17,9 @@ class ZeroOrOne implements RuleElement {
     String toString() {
         "[" + elements.join(" ") + "]"
     }
+
+    @Override
+    void acceptVisitor(RuleElementVisitor visitor) {
+        visitor.visitZeroOrOne(this)
+    }
 }

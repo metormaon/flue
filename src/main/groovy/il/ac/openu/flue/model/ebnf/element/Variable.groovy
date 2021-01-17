@@ -12,7 +12,7 @@ trait Variable extends LabeledRuleElement {
 
     Rule rightShift(Closure<RuleElement> c) {
         RuleElement result = c()
-        EBNF.add(new Rule(this, new ZeroOrMore(result)))
+        EBNF.add(new Rule(this, new OneOrMore(result)))
     }
 
     Rule rightShift(List<RuleElement> l) {
@@ -21,5 +21,10 @@ trait Variable extends LabeledRuleElement {
 
     Rule rightShift(String s) {
         EBNF.add(new Rule(this, new Token(s)))
+    }
+
+    @Override
+    void acceptVisitor(RuleElementVisitor visitor) {
+        visitor.visitVariable(this)
     }
 }
