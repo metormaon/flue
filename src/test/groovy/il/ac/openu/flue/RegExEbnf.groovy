@@ -130,6 +130,9 @@ class RegExEbnf {
             Char >> "#x9" | "#xA" | "#xD" | "[#x20-#xD7FF]" | "[#xE000-#xFFFD]" | "[#x10000-#x10FFFF]"
         }
 
-        regex.rules.forEach {println(GrammarToNFA.fromRule(it as Rule))}
+        regex.rules.forEach {
+            println(GrammarToNFA.fromRule(it as Rule))
+            println(it)
+        }
     }
 }
