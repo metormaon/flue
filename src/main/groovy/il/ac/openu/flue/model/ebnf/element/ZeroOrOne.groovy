@@ -1,16 +1,26 @@
 package il.ac.openu.flue.model.ebnf.element
+
+import il.ac.openu.flue.model.rule.Then
+import il.ac.openu.flue.model.rule.Expression
+import il.ac.openu.flue.model.rule.Optional
+
 /**
  * @author Noam Rotem
  */
 class ZeroOrOne implements RuleElement {
+    //
+
+    //
+    //
+    //should be one element
+
     List<RuleElement> elements = []
 
-    ZeroOrOne(RuleElement e) {
-        elements.add(e)
-    }
-
     ZeroOrOne(List<RuleElement> l) {
-        elements.addAll(l)
+        if (l.size() != 1) {
+            throw new IllegalStateException("Square brackets must wrap exactly one RuleElement")
+        }
+        elements.add(l[0])
     }
 
     @Override
@@ -19,7 +29,10 @@ class ZeroOrOne implements RuleElement {
     }
 
     @Override
-    void acceptVisitor(RuleElementVisitor visitor) {
-        visitor.visitZeroOrOne(this)
+    Expression expression() {
+        Expression e = (elements.size() == 1)? elements[0].expression()
+                : new Then(elements.collect {it.expression()})
+
+        new Optional(e)
     }
 }

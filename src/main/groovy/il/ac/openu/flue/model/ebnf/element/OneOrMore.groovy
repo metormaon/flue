@@ -1,25 +1,26 @@
 package il.ac.openu.flue.model.ebnf.element
+
+import il.ac.openu.flue.model.rule.Then
+import il.ac.openu.flue.model.rule.Expression
+import il.ac.openu.flue.model.rule.Repeated
+
 /**
  * @author Noam Rotem
  */
 class OneOrMore implements RuleElement {
-    List<RuleElement> elements = []
+    final RuleElement ruleElement
 
-    OneOrMore(RuleElement e) {
-        elements.add(e)
-    }
-
-    OneOrMore(List<RuleElement> l) {
-        elements.addAll(l)
+    OneOrMore(Closure<RuleElement> c) {
+        ruleElement = c()
     }
 
     @Override
     String toString() {
-        "{" + elements.join(" ") + "}"
+        "{" + ruleElement.toString() + "}"
     }
 
     @Override
-    void acceptVisitor(RuleElementVisitor visitor) {
-        visitor.visitOneOrMore(this)
+    Expression expression() {
+        new Repeated(ruleElement.expression())
     }
 }

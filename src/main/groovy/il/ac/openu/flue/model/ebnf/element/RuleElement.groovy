@@ -1,24 +1,27 @@
 package il.ac.openu.flue.model.ebnf.element
+
+import il.ac.openu.flue.model.rule.Expression
+
 /**
  * @author Noam Rotem
  */
 trait RuleElement {
     AndList and(RuleElement e) {
-        new AndList(this, e)
+        if (e instanceof AndList) {
+            AndList andList = new AndList(this)
+            andList.elements.addAll(e.elements)
+            andList
+        } else {
+            new AndList(this, e)
+        }
     }
 
-    AndList and(Closure<?> c) {
-        Object o = c()
-
-        if (o instanceof RuleElement) {
-            new AndList(this, new OneOrMore(o))
-        } else if (o instanceof AndList) {
-            new AndList(this, new OneOrMore(o.getElements()))
-        } else throw new RuntimeException("Illegal closure type")
+    AndList and(Closure<RuleElement> c) {
+        new AndList(this, new OneOrMore(c))
     }
 
     AndList and(List<RuleElement> l) {
-        new AndList(this, new ZeroOrOne(l[0]))
+        new AndList(this, new ZeroOrOne(l))
     }
 
     AndList and(String s) {
@@ -26,12 +29,26 @@ trait RuleElement {
     }
 
     OrList or(RuleElement e) {
-        new OrList(this, e)
+        if (e instanceof OrList) {
+            OrList orList = new OrList(this)
+            orList.elements.addAll(e.elements)
+            orList
+        } else {
+            new OrList(this, e)
+        }
+    }
+
+    OrList or(Closure<RuleElement> c) {
+        new OrList(this, new OneOrMore(c))
+    }
+
+    OrList or(List<RuleElement> l) {
+        new OrList(this, new ZeroOrOne(l))
     }
 
     OrList or(String s) {
         new OrList(this, new Token(s))
     }
 
-    abstract void acceptVisitor(RuleElementVisitor visitor)
+    abstract Expression expression()
 }

@@ -1,30 +1,31 @@
 package il.ac.openu.flue.model.ebnf.element
 
 import il.ac.openu.flue.model.ebnf.EBNF
+import il.ac.openu.flue.model.rule.Expression
+import il.ac.openu.flue.model.rule.NonTerminal
 
 /**
  * @author Noam Rotem
  */
 trait Variable extends LabeledRuleElement {
-    Rule rightShift(RuleElement e) {
-        EBNF.add(new Rule(this, e))
+    RawRule rightShift(RuleElement e) {
+        EBNF.add(new RawRule(this, e))
     }
 
-    Rule rightShift(Closure<RuleElement> c) {
-        RuleElement result = c()
-        EBNF.add(new Rule(this, new OneOrMore(result)))
+    RawRule rightShift(Closure<RuleElement> c) {
+        EBNF.add(new RawRule(this, new OneOrMore(c)))
     }
 
-    Rule rightShift(List<RuleElement> l) {
-        EBNF.add(new Rule(this, new ZeroOrOne(l[0])))
+    RawRule rightShift(List<RuleElement> l) {
+        EBNF.add(new RawRule(this, new ZeroOrOne(l)))
     }
 
-    Rule rightShift(String s) {
-        EBNF.add(new Rule(this, new Token(s)))
+    RawRule rightShift(String s) {
+        EBNF.add(new RawRule(this, new Token(s)))
     }
 
     @Override
-    void acceptVisitor(RuleElementVisitor visitor) {
-        visitor.visitVariable(this)
+    Expression expression() {
+        new NonTerminal(this)
     }
 }

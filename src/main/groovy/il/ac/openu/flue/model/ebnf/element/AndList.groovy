@@ -1,59 +1,59 @@
 package il.ac.openu.flue.model.ebnf.element
 
+import il.ac.openu.flue.model.rule.Expression
+import il.ac.openu.flue.model.rule.Then
+
 /**
  * @author Noam Rotem
  */
-class AndList {
-    @Delegate
+class AndList implements RuleElement {
     List<RuleElement> elements = []
 
     AndList(RuleElement...e) {
         elements.addAll(e)
-        this
     }
 
-    AndList(List<RuleElement> l) {
-        elements.addAll(l)
-        this
-    }
-
+    @Override
     AndList and(RuleElement e) {
         elements.add(e)
         this
     }
 
-    AndList and(Closure<?> c) {
-        Object o = c()
-
-        if (o instanceof RuleElement) {
-            elements.add(new OneOrMore(o))
-        } else if (o instanceof AndList) {
-            elements.add(new OneOrMore((o as AndList).getElements()))
-        } else throw new RuntimeException("Illegal closure type")
-
+    @Override
+    AndList and(Closure<RuleElement> c) {
+        elements.add(new OneOrMore(c))
         this
     }
 
-    AndList and(List<?> l) {
-        if (l.size() != 1) {
-            throw new RuntimeException("Illegal list length")
-        }
-
-        Object l1 = l[0]
-
-        if (l1 instanceof RuleElement) {
-            elements.add(new ZeroOrOne(l1 as RuleElement))
-        } else if (l1 instanceof String) {
-            elements.add(new ZeroOrOne(new Token(l1 as String)))
-        } else if (l1 instanceof AndList) {
-            elements.add(new ZeroOrOne((l1 as AndList).getElements()))
-        } else throw new RuntimeException("Illegal list element type")
-
+    @Override
+    AndList and(List<RuleElement> l) {
+        elements.add(new ZeroOrOne(l))
         this
     }
 
+    @Override
     AndList and(String s) {
         elements.add(new Token(s))
         this
+    }
+
+    @Override
+    Expression expression() {
+        new Then(elements.collect{it.expression()})
+    }
+
+    boolean equals(o) {
+        if (this.is(o)) return true
+        if (getClass() != o.class) return false
+
+        AndList andList = (AndList) o
+
+        if (elements != andList.elements) return false
+
+        return true
+    }
+
+    int hashCode() {
+        return elements.hashCode()
     }
 }

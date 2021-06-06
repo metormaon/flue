@@ -2,7 +2,7 @@ package il.ac.openu.flue.pipeline
 
 import il.ac.openu.flue.model.automaton.Automaton
 import il.ac.openu.flue.model.ebnf.element.OrList
-import il.ac.openu.flue.model.ebnf.element.Rule
+import il.ac.openu.flue.model.ebnf.element.RawRule
 import il.ac.openu.flue.model.ebnf.element.RuleElement
 import il.ac.openu.flue.model.ebnf.element.RuleElementVisitor
 import il.ac.openu.flue.model.ebnf.element.RuleOption
@@ -15,7 +15,7 @@ import il.ac.openu.flue.model.ebnf.element.ZeroOrOne
  * @author Noam Rotem
  */
 class GrammarToNFA {
-    static Automaton fromRule(Rule rule) {
+    static Automaton fromRule(RawRule rule) {
         Automaton automaton = fromRuleOption(rule.options[0])
 
         if (rule.options.size()>1) {

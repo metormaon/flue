@@ -1,4 +1,8 @@
 package il.ac.openu.flue.model.ebnf.element
+
+import il.ac.openu.flue.model.rule.Expression
+import il.ac.openu.flue.model.rule.Terminal
+
 /**
  * @author Noam Rotem
  */
@@ -15,7 +19,7 @@ class Token implements RuleElement {
     }
 
     @Override
-    void acceptVisitor(RuleElementVisitor visitor) {
-        visitor.visitToken(this)
+    Expression expression() {
+        new Terminal(regex)
     }
 }

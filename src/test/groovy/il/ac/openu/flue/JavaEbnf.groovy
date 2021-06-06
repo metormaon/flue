@@ -710,6 +710,6 @@ class JavaEbnf {
             ConstantExpression >> Expression
         }
 
-        println(java.toString())
+        println(java.rules.get(0))
     }
 }
