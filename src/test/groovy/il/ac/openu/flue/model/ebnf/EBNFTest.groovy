@@ -218,7 +218,13 @@ class EBNFTest {
         //Calculate First closure
         Map<Variable, Set<Terminal>> first = new HashMap<>();
 
+       
+
+        // Please implement also the NULLABLE algorithm. Also as work list.
+
         grammar.rules.forEach {
+          // This is a great algorithm for doing manipulation on regular expressions. Recursion works 
+          // these very well. There are such algorithms in the literature
             ExpressionTraverser<Set<Terminal>> traverser = new ExpressionTraverserBase<Set<Terminal>>() {
                 Set<NonTerminal> traversedNonTerminals = []
 
