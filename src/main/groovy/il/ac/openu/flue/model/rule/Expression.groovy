@@ -10,6 +10,56 @@ interface Expression {
     def <T> T acceptTraverser(ExpressionTraverser<T> traverser, T data)
 }
 
+abstract class UnaryExpression implements Expression {
+    Expression child
+
+    UnaryExpression(Expression child) {
+        this.child = child
+    }
+
+    boolean equals(o) {
+        if (this.is(o)) return true
+        if (getClass() != o.class) return false
+
+        UnaryExpression unaryExpression = (UnaryExpression) o
+
+        if (child != unaryExpression.child) return false
+
+        return true
+    }
+
+    int hashCode() {
+        return child.hashCode()
+    }
+}
+
+abstract class MultinaryExpression implements Expression {
+    List<Expression> children
+
+    MultinaryExpression(List<Expression> children) {
+        this.children = children
+    }
+
+    MultinaryExpression(Expression...children) {
+        this(children.toList())
+    }
+
+    boolean equals(o) {
+        if (this.is(o)) return true
+        if (getClass() != o.class) return false
+
+        MultinaryExpression multinaryExpression = (MultinaryExpression) o
+
+        if (children != multinaryExpression.children) return false
+
+        return true
+    }
+
+    int hashCode() {
+        return children.hashCode()
+    }
+}
+
 class Terminal implements Expression {
     String terminal
 
@@ -86,20 +136,18 @@ class NonTerminal implements Expression {
     }
 }
 
-class Or implements Expression {
-    List<Expression> children
-
+class Or extends MultinaryExpression {
     Or(List<Expression> children) {
-        this.children = children
+        super(children)
     }
 
     Or(Expression...children) {
-        this(children.toList())
+        super(children)
     }
 
     @Override
     void acceptVisitor(ExpressionVisitor visitor) {
-        visitor.visit(this);
+        visitor.visit(this)
         children.forEach(c -> c.acceptVisitor(visitor))
     }
 
@@ -112,37 +160,20 @@ class Or implements Expression {
     String toString() {
         "(" + children.join(")|(") + ")"
     }
-
-    boolean equals(o) {
-        if (this.is(o)) return true
-        if (getClass() != o.class) return false
-
-        Or or = (Or) o
-
-        if (children != or.children) return false
-
-        return true
-    }
-
-    int hashCode() {
-        return children.hashCode()
-    }
 }
 
-class Then implements Expression {
-    List<Expression> children
-
+class Then extends MultinaryExpression {
     Then(List<Expression> children) {
-        this.children = children
+        super(children)
     }
 
-    Then(Expression ... children) {
-        this(children.toList())
+    Then(Expression...children) {
+        super(children)
     }
 
     @Override
     void acceptVisitor(ExpressionVisitor visitor) {
-        visitor.visit(this);
+        visitor.visit(this)
         children.forEach(c -> c.acceptVisitor(visitor))
     }
 
@@ -155,33 +186,16 @@ class Then implements Expression {
     String toString() {
         "(" + children.join(")&(") + ")"
     }
-
-    boolean equals(o) {
-        if (this.is(o)) return true
-        if (getClass() != o.class) return false
-
-        Then then = (Then) o
-
-        if (children != then.children) return false
-
-        return true
-    }
-
-    int hashCode() {
-        return children.hashCode()
-    }
 }
 
-class Optional implements Expression {
-    Expression child
-
+class Optional extends UnaryExpression {
     Optional(Expression child) {
-        this.child = child
+        super(child)
     }
 
     @Override
     void acceptVisitor(ExpressionVisitor visitor) {
-        visitor.visit(this);
+        visitor.visit(this)
         child.acceptVisitor(visitor)
     }
 
@@ -194,33 +208,16 @@ class Optional implements Expression {
     String toString() {
         "[" + child + "]"
     }
-
-    boolean equals(o) {
-        if (this.is(o)) return true
-        if (getClass() != o.class) return false
-
-        Optional optional = (Optional) o
-
-        if (child != optional.child) return false
-
-        return true
-    }
-
-    int hashCode() {
-        return child.hashCode()
-    }
 }
 
-class Repeated implements Expression {
-    Expression child
-
+class Repeated extends UnaryExpression {
     Repeated(Expression child) {
-        this.child = child
+        super(child)
     }
 
     @Override
     void acceptVisitor(ExpressionVisitor visitor) {
-        visitor.visit(this);
+        visitor.visit(this)
         child.acceptVisitor(visitor)
     }
 
@@ -232,20 +229,5 @@ class Repeated implements Expression {
     @Override
     String toString() {
         "{" + child + "}"
-    }
-
-    boolean equals(o) {
-        if (this.is(o)) return true
-        if (getClass() != o.class) return false
-
-        Repeated repeated = (Repeated) o
-
-        if (child != repeated.child) return false
-
-        return true
-    }
-
-    int hashCode() {
-        return child.hashCode()
     }
 }
