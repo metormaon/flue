@@ -1,5 +1,6 @@
 package il.ac.openu.flue.model.ebnf
 
+import il.ac.openu.flue.model.ebnf.element.Token
 import il.ac.openu.flue.model.ebnf.element.Variable
 import il.ac.openu.flue.model.rule.ExpressionTraverser
 import il.ac.openu.flue.model.rule.ExpressionTraverserBase
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test
 
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 import static il.ac.openu.flue.model.ebnf.EBNFTest.V.*
+import static il.ac.openu.flue.model.ebnf.element.Token.*
 
 /**
  * @author Noam Rotem
@@ -35,9 +37,11 @@ class EBNFTest {
     void testSimpleRule() {
         EBNF grammar = ebnf {
             A >> B
+            A >> ε
+            A >> "sd"
         }
 
-        assert grammar.rules == [new Rule(A, v(B))]
+        assert grammar.rules == [new Rule(A, v(B)), new Rule(A, t("ε")), new Rule(A, t("sd"))]
     }
 
     @Test
