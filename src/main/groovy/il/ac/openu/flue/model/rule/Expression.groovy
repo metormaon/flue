@@ -4,117 +4,67 @@ import il.ac.openu.flue.model.ebnf.element.Variable
 
 /**
  * @author Noam Rotem
+ You can make it shorter by:
+ 1. Using nested classes. Class names become shorter.
+ 2. Trim parameter names: for short functions with one parameter, 
+ one letter is enough.
+ 3. Remove abstraction level: no need for interface.
+ 4. Repetitive methods could be presented in table like form, 
+     when there is very little individuality to them. 
+  5. Manually written hasnCode() and equals()
  */
-interface Expression {
-    void acceptVisitor(ExpressionVisitor visitor)
-    def <T> T acceptTraverser(ExpressionTraverser<T> traverser, T data)
-    void visit(Visitor<T> v)
-    abstract class Visitor<T> {
-      T visit(Then then) 
+abstract class Expression {
+  static abstract class Unary extends Expression {
+    Expression child
+    Unary(Expression child) { this.child = child }
+    // This is how you make equals shorter.
+    boolean equals(o) { is(o) || getClass() == o.class && child == (Unary) o;
+    int hashCode() { return super.hashCode() ^ child.hashCode() }
+  }
+  static abstract class Multinary implements Expression {
+    List<Expression> children
+    Multinary(List<Expression> children) { this.children = children }
+    Multinary(Expression children) { this(children.toList()) }
+    boolean equals(o) { is(o) || getClass == o.class && chilren == (Multinary)o.children  }
+    int hashCode() { super.hashCode ^ children.hashCode() }
+  }
+  class Or extends Multinary {
+    Or(List<Expression> children) { super(children) }
+    Or(Expression...children) { super(children) }
+    @Override
+    void acceptVisitor(ExpressionVisitor visitor) {
+      visitor.visit(this)
+      children.forEach(c -> c.acceptVisitor(visitor))
+    }
+    @Override <T> T acceptTraverser(ExpressionTraverser<T> traverser, T data) {
+        traverser.traverse(this, data)
+    }
+
+    @Override String toString() { "(" + children.join(")|(") + ")" }
+  }
+ void acceptVisitor(ExpressionVisitor visitor)
+  def <T> T acceptTraverser(ExpressionTraverser<T> traverser, T data)
+  void visit(Visitor<T> v)
+  static abstract class Visitor<T> {
+    T visit(Then then) 
+    T visit(Or or)
+    T visit(Optional optional)
+    T visit(Repeated repeated)
+    T visit(NonTerminal nonTerminal)
+    T visit(Terminal terminal)
+  }
+  Map<Symbol, Set<Symbol>> badFirst(Expression e) {
+    e.visit(new Visitor<Set<Terminal>>() {
+      T visit(Then then)
       T visit(Or or)
       T visit(Optional optional)
       T visit(Repeated repeated)
       T visit(NonTerminal nonTerminal)
       T visit(Terminal terminal)
     }
-    Map<Symbol, Set<Symbol>> badFirst(Expression e) {
-      e.visit(new Visitor<Set<Terminal>>() {
-        T visit(Then then)
-        T visit(Or or)
-        T visit(Optional optional)
-        T visit(Repeated repeated)
-        T visit(NonTerminal nonTerminal)
-        T visit(Terminal terminal)
-    }
-    abstract class Unary implements Expression {
-    Expression child
-    UnaryExpression(Expression child) { this.child = child }
-
-    boolean equals(o) {
-        if (this.is(o)) return true
-        if (getClass() != o.class) return false
-
-        UnaryExpression unaryExpression = (UnaryExpression) o
-
-        if (child != unaryExpression.child) return false
-
-        return true
-    }
-
-    int hashCode() { return super.hashCode() + child.hashCode() }
-    abstract class MultinaryExpression implements Expression {
-    List<Expression> children
-
-    Multinary(List<Expression> children) { this.children = children }
-
-    Multinary(Expression...children) {
-        this(children.toList())
-    }
-
-    boolean equals(o) {
-        if (this.is(o)) return true
-        if (getClass() != o.class) return false
-
-        Multinary multinaryExpression = (MultinaryExpression) o
-
-        if (children != multinaryExpression.children) return false
-
-        return true
-    }
-
-    int hashCode() {
-        return children.hashCode()
-    }
-}
-
-}
-
-}
-
-
-    abstract class ExpressionTraverserBase<T> implements ExpressionTraverser<T> {
-    @Override
-    T traverse(NonTerminal nonTerminal, T state) {
-        state
-    }
-
-    @Override
-    T traverse(Terminal terminal, T state) {
-        state
-    }
-
-    @Override
-    T traverse(Then then, T state) {
-        state
-    }
-
-    @Override
-    T traverse(Or or, T state) {
-        state
-    }
-
-    @Override
-    T traverse(Optional optional, T state) {
-        state
-    }
-
-    @Override
-    T traverse(Repeated repeated, T state) {
-        state
-    }
-}
-}
-}
-
-class Collector extends ExpressionVisitor {
-
-
-class Terminal implements Expression {
+    class Terminal implements Expression {
     String terminal
-
-    Terminal(String terminal) {
-        this.terminal = terminal
-    }
+    Terminal(String terminal) { this.terminal = terminal }
 
     @Override
     void acceptVisitor(ExpressionVisitor visitor) {
@@ -128,18 +78,8 @@ class Terminal implements Expression {
 
     @Override String toString() { "\"" + terminal + "\"" }
 
-    boolean equals(o) {
-        if (this.is(o)) return true
-        if (getClass() != o.class) return false
-
-        Terminal terminal1 = (Terminal) o
-
-        if (terminal != terminal1.terminal) return false
-
-        return true
-    }
-
-    int hashCode() { super.hashCode() + terminal.hashCode() }
+    boolean equals(o) { is(o) || getClass() != o.class &&  terminal == (Terminal) o.terminal; }
+    int hashCode() { super.hashCode() ^ terminal.hashCode() }
 }
 
 class NonTerminal implements Expression {
@@ -174,14 +114,9 @@ class NonTerminal implements Expression {
     int hashCode() { super.hashCode() ^ variable.hashCode() }
 }
 
-class Or extends MultinaryExpression {
-    Or(List<Expression> children) {
-        super(children)
-    }
-
-    Or(Expression...children) {
-        super(children)
-    }
+class Or extends Multinary {
+    Or(List<Expression> children) { super(children) }
+    Or(Expression...children) { super(children) }
 
     @Override
     void acceptVisitor(ExpressionVisitor visitor) {
@@ -200,14 +135,9 @@ class Or extends MultinaryExpression {
     }
 }
 
-class Then extends MultinaryExpression {
-    Then(List<Expression> children) {
-        super(children)
-    }
-
-    Then(Expression...children) {
-        super(children)
-    }
+class Then extends Multinary {
+    Then(List<Expression> children) { super(children) } 
+    Then(Expression...children) { super(children) }
 
     @Override
     void acceptVisitor(ExpressionVisitor visitor) {
@@ -226,7 +156,7 @@ class Then extends MultinaryExpression {
     }
 }
 
-class Optional extends UnaryExpression {
+  class Optional extends Unary {
     Optional(Expression child) { super(child) }
 
     @Override
@@ -246,9 +176,8 @@ class Optional extends UnaryExpression {
     }
 }
 
-class Repeated extends UnaryExpression {
+  class Repeated extends Unary {
     Repeated(Expression child) { super(child) }
-
     @Override
     void acceptVisitor(ExpressionVisitor visitor) {
         visitor.visit(this)
@@ -261,4 +190,5 @@ class Repeated extends UnaryExpression {
     }
 
     @Override String toString() { "{" + child + "}" }
+  }
 }
