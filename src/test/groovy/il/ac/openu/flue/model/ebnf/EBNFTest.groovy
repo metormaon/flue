@@ -30,6 +30,36 @@ class EBNFTest {
     }
 
     @Test
+    void testRoot() {
+        assert ebnf (A) {
+            A >> "x"
+        }.root == A
+
+        assert ebnf (B) {
+            A >> "x"
+        }.root == B
+
+        assert ebnf {
+            D >> C & D
+            D >> {B}
+            A >> B | C
+            B >> C
+            C >> "W" | [D]
+        }.root == A
+
+        assert ebnf {
+            A >> B | C
+            B >> A
+        }.root == null
+
+        assert ebnf {
+            A >> B
+            B >> C
+            D >> C
+        }.root == null
+    }
+
+    @Test
     void testSimpleRule() {
         EBNF grammar = ebnf {
             A >> B

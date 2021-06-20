@@ -31,7 +31,7 @@ class EBNF {
     Map<Variable, List<Rule>> ruleMap
 
     private void transformRules() {
-        rules = rawRules.collect {new Rule(it.variable, it.expression())}
+        rules = rawRules.collect { new Rule(it.variable, it.expression()) }
         ruleMap = rules.groupBy {
             it.nonTerminal
         }
@@ -62,6 +62,7 @@ class EBNF {
 
     static EBNF ebnf(Closure c) {
         EBNF ebnf = process c
+        ebnf.root = ebnf.findRoot()
         ebnf
     }
 
@@ -69,6 +70,60 @@ class EBNF {
         EBNF ebnf = process c
         ebnf.root = v
         ebnf
+    }
+
+    private Variable findRoot() {
+        Set<Variable> definedVariables = []
+        Set<Variable> referredVariables = []
+
+        Visitor<Set<Variable>> referredVariableVisitor = new Visitor<Set<Variable>>() {
+            @Override
+            Set<Variable> visit(Then then) {
+                then.children.inject([].toSet()) { s, e ->
+                    s + e.accept(this)
+                }
+            }
+
+            @Override
+            Set<Variable> visit(Or or) {
+                or.children.inject([].toSet()) { s, e ->
+                    s + e.accept(this)
+                }
+            }
+
+            @Override
+            Set<Variable> visit(Optional optional) {
+                optional.child.accept(this)
+            }
+
+            @Override
+            Set<Variable> visit(Repeated repeated) {
+                repeated.child.accept(this)
+            }
+
+            @Override
+            Set<Variable> visit(NonTerminal nonTerminal) {
+                [nonTerminal.variable].toSet()
+            }
+
+            @Override
+            Set<Variable> visit(Terminal terminal) {
+                [].toSet() as Set<Variable>
+            }
+        }
+
+        rules.forEach(r -> {
+            definedVariables += r.nonTerminal
+            referredVariables += r.definition.accept(referredVariableVisitor)
+        })
+
+        Set<Variable> rootVariables = definedVariables - referredVariables
+
+        if (rootVariables.size() == 1) {
+            rootVariables[0]
+        } else {
+            null
+        }
     }
 
     Set<Rule> select(@ClosureParams(value = SimpleType, options = "il.ac.openu.flue.model.rule.Rule")
