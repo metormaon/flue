@@ -16,11 +16,17 @@ class ZeroOrOne implements RuleElement {
 
     List<RuleElement> elements = []
 
-    ZeroOrOne(List<RuleElement> l) {
+    ZeroOrOne(List<?> l) {
         if (l.size() != 1) {
             throw new IllegalStateException("Square brackets must wrap exactly one RuleElement")
         }
-        elements.add(l[0])
+        if (l[0] instanceof RuleElement) {
+            elements.add(l[0] as RuleElement)
+        } else if (l[0] instanceof String) {
+            elements.add(new Token(l[0] as String))
+        } else {
+            throw new IllegalStateException("Square brackets must wrap rule element or string")
+        }
     }
 
     @Override

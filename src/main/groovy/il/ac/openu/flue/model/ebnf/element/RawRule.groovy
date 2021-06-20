@@ -45,8 +45,14 @@ class RawRule {
         this
     }
 
-    RawRule or(List<RuleElement> l) {
-        definition = definition | l
+    RawRule or(List<?> l) {
+        if (l[0] instanceof RuleElement) {
+            definition = definition | (List<RuleElement>)l
+        } else if (l[0] instanceof String) {
+            definition = definition | new Token((String)l[0])
+        } else {
+            throw new IllegalStateException();
+        }
         this
     }
 

@@ -1,11 +1,6 @@
 package il.ac.openu.flue.model.ebnf
 
-import il.ac.openu.flue.model.ebnf.element.Token
 import il.ac.openu.flue.model.ebnf.element.Variable
-import il.ac.openu.flue.model.rule.ExpressionTraverser
-import il.ac.openu.flue.model.rule.ExpressionTraverserBase
-import il.ac.openu.flue.model.rule.ExpressionVisitor
-import il.ac.openu.flue.model.rule.ExpressionVisitorBase
 import il.ac.openu.flue.model.rule.NonTerminal
 import il.ac.openu.flue.model.rule.Or
 import il.ac.openu.flue.model.rule.Repeated
@@ -18,6 +13,7 @@ import org.junit.jupiter.api.Test
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 import static il.ac.openu.flue.model.ebnf.EBNFTest.V.*
 import static il.ac.openu.flue.model.ebnf.element.Token.*
+import static il.ac.openu.flue.model.rule.Expression.Visitor
 
 /**
  * @author Noam Rotem
@@ -157,6 +153,32 @@ class EBNFTest {
             A >> "select" | B
             A >> "select" & "*" & "from"
             A >> B & "WHERE" & "[a-b]+"
+            A >> {"S"} | C
+            A >> ["R"] & "F"
+//            A >> ("R" | "E")
+//            A >> ("R" | C)
+//            A >> ("R" | ["E"])
+//            A >> ("R" | [C])
+//            A >> ("R" | {"E"})
+//            A >> ("R" | {C})
+//            A >> ("E" | "R")
+            A >> (C | "R")
+//            A >> (["E"] | "R")
+//            A >> ([C] | "R")
+//            A >> ({"E"} | "R")
+//            A >> ({C} | "R")
+//            A >> ("R" & "E")
+//            A >> ("R" & C)
+//            A >> ("R" & ["E"])
+//            A >> ("R" & [C])
+//            A >> ("R" & {"E"})
+//            A >> ("R" & {C})
+//            A >> ("E" & "R")
+            A >> (C & "R")
+//            A >> (["E"] & "R")
+//            A >> ([C] & "R")
+//            A >> ({"E"} & "R")
+//            A >> ({C} & "R")
         }
 
         assert grammar.rules == [new Rule(A, t("select")),
@@ -165,7 +187,12 @@ class EBNFTest {
                                  new Rule(A, new Then(t("select"), v(B))),
                                  new Rule(A, new Or(t("select"), v(B))),
                                  new Rule(A, new Then(t("select"), t("*"), t("from"))),
-                                 new Rule(A, new Then(v(B), t("WHERE"), t("[a-b]+")))]
+                                 new Rule(A, new Then(v(B), t("WHERE"), t("[a-b]+"))),
+                                 new Rule(A, new Or(new Repeated(t("S")), v(C))),
+                                 new Rule(A, new Then(new Optional(t("R")), t("F"))),
+                                 new Rule(A, new Or(v(C), t("R"))),
+                                 new Rule(A, new Then(v(C), t("R"))),
+        ]
     }
 
     @Test
@@ -189,105 +216,117 @@ class EBNFTest {
 
         //Select rules with tokens
         Set<Rule> selected = grammar.select {r -> {
-            ExpressionVisitor v = new ExpressionVisitorBase(){
-                boolean terminalFound
+            Visitor<Boolean> v = new Visitor<Boolean>() {
+                @Override
+                Boolean visit(Then then) {
+                    then.children.inject(false){a,b -> a | b.accept(this)}
+                }
 
                 @Override
-                void visit(Terminal t) {
-                    terminalFound = true
+                Boolean visit(Or or) {
+                    or.children.inject(false){a,b -> a | b.accept(this)}
+                }
+
+                @Override
+                Boolean visit(Optional optional) {
+                    optional.child.accept(this)
+                }
+
+                @Override
+                Boolean visit(Repeated repeated) {
+                    repeated.child.accept(this)
+                }
+
+                @Override
+                Boolean visit(NonTerminal nonTerminal) {
+                    false
+                }
+
+                @Override
+                Boolean visit(Terminal terminal) {
+                    true
                 }
             }
 
-            r.definition.acceptVisitor(v)
-
-            return v.terminalFound
+            return r.definition.accept(v)
         }}
 
         assert selected.size() == 2
     }
 
     @Test
-    void testQuery() {
+    void testFirst() {
+        //Empty circular
+        assert ebnf { A >> A }.first() == makeComparableToFirst([A: []])
+
+        //Empty wide circle
+        assert ebnf { A >> B
+            B >> A}.first() == makeComparableToFirst([A: [], B: []])
+
+        //Incomplete
+        assert ebnf { A >> B }.first() == makeComparableToFirst([A: []])
+
         EBNF grammar = ebnf {
             A >> B
+            A >> "G"
             B >> "E" | C
             C >> "F"
-            D >> {C} & [A]
+            C >> A | ε
+            D >> {C} & [E] & "M" & "L" | ["R"]
+            E >> "Q"
         }
 
-        //Calculate First closure
-        Map<Variable, Set<Terminal>> first = new HashMap<>();
-
-       
-
-        // Please implement also the NULLABLE algorithm. Also as work list.
-
-        grammar.rules.forEach {
-          // This is a great algorithm for doing manipulation on regular expressions. Recursion works 
-          // these very well. There are such algorithms in the literature
-            ExpressionTraverser<Set<Terminal>> traverser = new ExpressionTraverserBase<Set<Terminal>>() {
-                Set<NonTerminal> traversedNonTerminals = []
-
-                @Override
-                Set<Terminal> traverse(NonTerminal nonTerminal, Set<Terminal> state) {
-                    if (!traversedNonTerminals.contains(nonTerminal)) {
-                        traversedNonTerminals.add(nonTerminal)
-                        Rule rule = grammar.ruleMap.get(nonTerminal.variable)
-
-                        if (rule != null) {
-                            state.addAll(rule.definition.acceptTraverser(this, state))
-                        }
-                    }
-
-                    state
-                }
-
-                @Override
-                Set<Terminal> traverse(Terminal terminal, Set<Terminal> state) {
-                    state + terminal
-                }
-
-                @Override
-                Set<Terminal> traverse(Then then, Set<Terminal> state) {
-                    state.addAll(then.children[0].acceptTraverser(this, state))
-                    state
-                }
-
-                @Override
-                Set<Terminal> traverse(Or or, Set<Terminal> state) {
-                    or.children.forEach(c -> state.addAll(c.acceptTraverser(this, state)))
-                    state
-                }
-
-                @Override
-                Set<Terminal> traverse(Optional optional, Set<Terminal> state) {
-                    optional.child.acceptTraverser(this, state)
-                }
-
-                @Override
-                Set<Terminal> traverse(Repeated repeated, Set<Terminal> state) {
-                    repeated.child.acceptTraverser(this, state)
-                }
-            }
-
-            first.put(it.nonTerminal, it.definition.acceptTraverser(traverser, new HashSet<Terminal>()))
-        }
-
-        assert first == new HashMap<Variable, Set<Terminal>>(){{
-            put(A,new HashSet<Terminal>(){{
-                add(new Terminal("E"))
-                add(new Terminal("F"))
-            }})
-            put(B,new HashSet<Terminal>(){{
-                add(new Terminal("E"))
-                add(new Terminal("F"))
-            }})
-            put(C,new HashSet<Terminal>(){{
-                add(new Terminal("F"))
-            }})
-            put(D,new HashSet<Terminal>(){{
-                add(new Terminal("F"))
-            }})
-        }}
+        assert grammar.first() == makeComparableToFirst([
+                A: ["E", "F", "G", "ε"],
+                B: ["E", "F", "G", "ε"],
+                C: ["F", "E", "G", "ε"],
+                D: ["F", "E", "G", "ε", "Q", "M", "R"],
+                E: ["Q"]
+        ])
     }
+
+    static Map<Variable, Set<Terminal>> makeComparableToFirst(Map<String, List<String>> expected) {
+        expected.collectEntries {
+            v , t -> {
+                [valueOf(v), t.collect {
+                    new Terminal(it)
+                }.toSet()]
+            }
+        } as Map<Variable, Set<Terminal>>
+    }
+
+    @Test
+    void testNullable() {
+        assert ebnf { A >> ε }.nullable() == [(A): true]
+        assert ebnf { A >> [ε] }.nullable() == [(A): true]
+        assert ebnf { A >> {ε} }.nullable() == [(A): true]
+        assert ebnf { A >> "Z" | ε }.nullable() == [(A): true]
+        assert ebnf { A >> ε | "Z" }.nullable() == [(A): true]
+
+        assert ebnf { A >> A }.nullable() == [(A): false]
+        assert ebnf { A >> B }.nullable() == [(A): false]
+        assert ebnf { A >> "w" }.nullable() == [(A): false]
+
+        EBNF grammar = ebnf {
+            A >> B
+            A >> "G"
+            B >> "E" | C
+            C >> "F"
+            C >> A | ε
+            D >> {C} & [E] & "M" & "L" | ["R"]
+            E >> "Q"
+        }
+
+        assert grammar.nullable() == [
+                (A): true,
+                (B): true,
+                (C): true,
+                (D): true,
+                (E): false
+        ]
+    }
+
 }
+
+//  Please implement also the NULLABLE algorithm. Also as work list.
+

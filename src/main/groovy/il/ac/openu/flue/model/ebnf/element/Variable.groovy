@@ -12,11 +12,11 @@ trait Variable extends LabeledRuleElement {
         EBNF.add(new RawRule(this, e))
     }
 
-    RawRule rightShift(Closure<RuleElement> c) {
+    RawRule rightShift(Closure<?> c) {
         EBNF.add(new RawRule(this, new OneOrMore(c)))
     }
 
-    RawRule rightShift(List<RuleElement> l) {
+    RawRule rightShift(List<?> l) {
         EBNF.add(new RawRule(this, new ZeroOrOne(l)))
     }
 

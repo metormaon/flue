@@ -5,7 +5,16 @@ import groovy.transform.stc.FromString
 import groovy.transform.stc.SimpleType
 import il.ac.openu.flue.model.ebnf.element.RawRule
 import il.ac.openu.flue.model.ebnf.element.Variable
+import il.ac.openu.flue.model.rule.Expression
+import il.ac.openu.flue.model.rule.NonTerminal
+import il.ac.openu.flue.model.rule.Optional
+import il.ac.openu.flue.model.rule.Or
+import il.ac.openu.flue.model.rule.Repeated
 import il.ac.openu.flue.model.rule.Rule
+import il.ac.openu.flue.model.rule.Terminal
+import il.ac.openu.flue.model.rule.Then
+
+import static il.ac.openu.flue.model.rule.Expression.Visitor
 
 /**
  * @author Noam Rotem
@@ -19,12 +28,12 @@ class EBNF {
     private Set<RawRule> rawRules = []
 
     List<Rule> rules
-    Map<Variable, Rule> ruleMap
+    Map<Variable, List<Rule>> ruleMap
 
     private void transformRules() {
         rules = rawRules.collect {new Rule(it.variable, it.expression())}
-        ruleMap = rules.collectEntries {
-            [(it.nonTerminal): it]
+        ruleMap = rules.groupBy {
+            it.nonTerminal
         }
     }
 
@@ -62,10 +71,6 @@ class EBNF {
         ebnf
     }
 
-    Rule definitionOf(Variable v) {
-        return ruleMap[v]
-    }
-
     Set<Rule> select(@ClosureParams(value = SimpleType, options = "il.ac.openu.flue.model.rule.Rule")
                             Closure<Boolean> ruleFunction) {
         rules.findAll{ruleFunction(it)}.toSet()
@@ -75,5 +80,121 @@ class EBNF {
             @ClosureParams(value = FromString, options = "T, il.ac.openu.flue.model.rule.Rule")
                     T state, Closure<T> ruleFunction) {
         rules.inject state, ruleFunction
+    }
+
+    Map<Variable, Boolean> nullable() {
+        Map<Variable, Boolean> nullable = [:]
+
+        Visitor<Boolean> nullableVisitor = new Visitor<Boolean>() {
+            @Override
+            Boolean visit(Then then) {
+                then.children[0].accept(this)
+            }
+
+            @Override
+            Boolean visit(Or or) {
+                or.children.inject(false) {a, b ->
+                    a || b.accept(this)
+                }
+            }
+
+            @Override
+            Boolean visit(Optional optional) {
+                true
+            }
+
+            @Override
+            Boolean visit(Repeated repeated) {
+                repeated.child.accept(this)
+            }
+
+            @Override
+            Boolean visit(NonTerminal nonTerminal) {
+                nullable[nonTerminal.variable] ?: false
+            }
+
+            @Override
+            Boolean visit(Terminal terminal) {
+                terminal.terminal == "ε"
+            }
+        }
+
+        def copyOfNullable
+
+        do {
+            copyOfNullable = nullable.clone()
+
+            ruleMap.collect { Variable v, List<Rule> rs ->
+                rs.forEach { Rule r ->
+                    nullable.merge(v, r.definition.accept(nullableVisitor),
+                            (Boolean oldFirst, Boolean newFirst) -> oldFirst || newFirst
+                    )
+                }
+            }
+        } while (copyOfNullable != nullable)
+
+        nullable
+    }
+
+    Map<Variable, Set<Terminal>> first() {
+        Map<Variable, Set<Terminal>> first = [:]
+
+        Visitor<Set<Terminal>> firstVisitor = new Visitor<Set<Terminal>>() {
+            @Override
+            Set<Terminal> visit(Then then) {
+                Set<Terminal> firstOfThen = []
+
+                then.children.find { Expression e ->
+                    Set<Terminal> firstOfChild = e.accept(this)
+                    firstOfThen += firstOfChild
+                    return !firstOfChild.contains(new Terminal("ε"))
+                }
+
+                firstOfThen
+            }
+
+            @Override
+            Set<Terminal> visit(Or or) {
+                or.children.inject([].toSet()) {a, b ->
+                    a + b.accept(this)
+                }
+            }
+
+            @Override
+            Set<Terminal> visit(Optional optional) {
+                optional.child.accept(this) + new Terminal("ε")
+            }
+
+            @Override
+            Set<Terminal> visit(Repeated repeated) {
+                repeated.child.accept(this)
+            }
+
+            @Override
+            Set<Terminal> visit(NonTerminal nonTerminal) {
+                first[nonTerminal.variable] ?: []
+            }
+
+            @Override
+            Set<Terminal> visit(Terminal terminal) {
+                [terminal]
+            }
+        }
+
+        def copyOfFirst
+
+        do {
+            copyOfFirst = first.clone()
+
+            ruleMap.collect { Variable v, List<Rule> rs ->
+                rs.forEach { Rule r ->
+                    first.merge(v, r.definition.accept(firstVisitor),
+                            (Set<Terminal> oldFirst, Set<Terminal> newFirst) -> oldFirst + newFirst
+                    )
+                }
+            }
+        } while (copyOfFirst != first)
+
+        first
     }
 }
