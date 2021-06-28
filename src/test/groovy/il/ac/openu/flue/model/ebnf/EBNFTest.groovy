@@ -10,6 +10,7 @@ import il.ac.openu.flue.model.rule.Terminal
 import il.ac.openu.flue.model.rule.Then
 import org.junit.jupiter.api.Test
 
+import static groovy.test.GroovyAssert.shouldFail
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 import static il.ac.openu.flue.model.ebnf.EBNFTest.V.*
 import static il.ac.openu.flue.model.ebnf.element.Token.*
@@ -47,16 +48,25 @@ class EBNFTest {
             C >> "W" | [D]
         }.root == A
 
-        assert ebnf {
-            A >> B | C
-            B >> A
-        }.root == null
+        shouldFail(IllegalArgumentException) {
+            ebnf {
+                A >> B | C
+                B >> A
+            }.root
+        }
 
         assert ebnf {
             A >> B
             B >> C
             D >> C
-        }.root == null
+        }.root == A
+
+        assert ebnf {
+            D >> B
+            A >> B
+            B >> C
+            D >> C
+        }.root == D
     }
 
     @Test
@@ -286,15 +296,8 @@ class EBNFTest {
 
     @Test
     void testFirst() {
-        //Empty circular
-        assert ebnf { A >> A }.first() == makeComparableToFirst([A: []])
-
-        //Empty wide circle
-        assert ebnf { A >> B
-            B >> A}.first() == makeComparableToFirst([A: [], B: []])
-
         //Incomplete
-        assert ebnf { A >> B }.first() == makeComparableToFirst([A: []])
+        assert ebnf { A >> B }.first() == materialize([A: []])
 
         EBNF grammar = ebnf {
             A >> B
@@ -306,23 +309,13 @@ class EBNFTest {
             E >> "Q"
         }
 
-        assert grammar.first() == makeComparableToFirst([
+        assert grammar.first() == materialize([
                 A: ["E", "F", "G", "ε"],
                 B: ["E", "F", "G", "ε"],
                 C: ["F", "E", "G", "ε"],
                 D: ["F", "E", "G", "ε", "Q", "M", "R"],
                 E: ["Q"]
         ])
-    }
-
-    static Map<Variable, Set<Terminal>> makeComparableToFirst(Map<String, List<String>> expected) {
-        expected.collectEntries {
-            v , t -> {
-                [valueOf(v), t.collect {
-                    new Terminal(it)
-                }.toSet()]
-            }
-        } as Map<Variable, Set<Terminal>>
     }
 
     @Test
@@ -333,7 +326,6 @@ class EBNFTest {
         assert ebnf { A >> "Z" | ε }.nullable() == [(A): true]
         assert ebnf { A >> ε | "Z" }.nullable() == [(A): true]
 
-        assert ebnf { A >> A }.nullable() == [(A): false]
         assert ebnf { A >> B }.nullable() == [(A): false]
         assert ebnf { A >> "w" }.nullable() == [(A): false]
 
@@ -356,7 +348,76 @@ class EBNFTest {
         ]
     }
 
+    @Test
+    void testFollow() {
+        //incomplete
+        assert ebnf { A >> B }.follow() == materialize([A: ["ṩ"], B:["ṩ"]])
+
+        assert ebnf {
+            A >> B
+            B >> "W"
+        }.follow() == materialize([
+            A: ["ṩ"],
+            B: ["ṩ"]
+        ])
+
+        assert ebnf {
+            A >> B
+            B >> "W" | ε
+        }.follow() == materialize([
+                A: ["ṩ"],
+                B: ["ṩ"]
+        ])
+
+        assert ebnf {
+            A >> B
+            B >> C & "w" | D
+            C >> ["a"]
+            D >> B & "m" & B
+        }.follow() == materialize([
+                A: ["ṩ"],
+                B: ["m", "ṩ"],
+                C: ["w"],
+                D: ["m", "ṩ"]
+        ])
+
+        assert ebnf {
+            A >> B & C | {B}
+            B >> "w"
+            C >> "q" & [B] & [D]
+            D >> "s"
+        }.follow() == materialize([
+                A: ["ṩ"],
+                B: ["q", "s", "w", "ṩ"],
+                C: ["ṩ"],
+                D: ["ṩ"]
+        ])
+
+
+        EBNF grammar = ebnf(A) {
+            A >> B & C
+            C >> "+" & B & C | ε
+            B >> D & E
+            E >> "*" & D & E | ε
+            D >> "(" & A & ")" | "id"
+        }
+
+        assert grammar.follow() == materialize([
+                A: ["ṩ", ")"],
+                B: ["ṩ", ")", "+"],
+                C: ["ṩ", ")"],
+                D: ["ṩ", ")", "+", "*"],
+                E: ["ṩ", ")", "+"]
+        ])
+    }
+
+    static Map<Variable, Set<Terminal>> materialize(Map<String, List<String>> expected) {
+        expected.collectEntries {
+            v , t -> {
+                [valueOf(v), t.collect {
+                    new Terminal(it)
+                }.toSet()]
+            }
+        } as Map<Variable, Set<Terminal>>
+    }
 }
-
-//  Please implement also the NULLABLE algorithm. Also as work list.
-
