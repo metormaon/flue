@@ -10,6 +10,8 @@ import il.ac.openu.flue.model.rule.Terminal
 import il.ac.openu.flue.model.rule.Then
 import org.junit.jupiter.api.Test
 
+import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
+
 import static groovy.test.GroovyAssert.shouldFail
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 import static il.ac.openu.flue.model.ebnf.EBNFTest.V.*
@@ -181,6 +183,14 @@ class EBNFTest {
                                  new Rule(A, new Then(new Optional(v(B)), v(C))),
                                  new Rule(A, new Then(new Optional(v(B)), new Optional(v(C)))),
                                  new Rule(A, new Optional(new Then(new Optional(v(B)), v(C))))]
+    }
+
+    @Test
+    void testAdditionalRulePatterns() {
+        assert ebnf {
+            A >> { B } & C | { D } & "boolean"
+        }.rules == [new Rule(A, new Or(new Then(new Repeated(v(B)), v(C)),
+                new Then(new Repeated(v(D)), t("boolean"))))]
     }
 
     @Test

@@ -3,8 +3,6 @@ package il.ac.openu.flue.model.ebnf.extension
 import il.ac.openu.flue.model.ebnf.element.*
 import il.ac.openu.flue.model.rule.Terminal
 
-import java.util.concurrent.CancellationException
-
 /**
  * @author Noam Rotem
  */

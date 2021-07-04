@@ -9,7 +9,7 @@ import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 /**
  * @author Noam Rotem
  */
-class JavaEbnf {
+class JavaEbnfAnnotated {
     static enum V implements Variable {Identifier, IdentifierChars, JavaLetter, JavaLetterOrDigit, TypeIdentifier,
     UnqualifiedMethodIdentifier, Literal, IntegerLiteral, FloatingPointLiteral, BooleanLiteral, CharacterLiteral,
     StringLiteral, NullLiteral, Type, PrimitiveType, ReferenceType, Annotation, NumericType, IntegralType,
@@ -56,18 +56,25 @@ class JavaEbnf {
 
     static void main(String[] args) {
         EBNF java = ebnf {
+            //Redundant
             Identifier >> IdentifierChars
 
+            //Ordinary, with List
             IdentifierChars >> JavaLetter & { JavaLetterOrDigit }
 
+            //Class with String value
             JavaLetter >> "[A-Za-z]"
 
+            //Class with String value
             JavaLetterOrDigit >> "[A-Za-z0-9_]"
 
+            //Redundant
             TypeIdentifier >> Identifier
 
+            //Redundant
             UnqualifiedMethodIdentifier >> Identifier
 
+            //Inheritance
             Literal >> IntegerLiteral
                     | FloatingPointLiteral
                     | BooleanLiteral
@@ -75,26 +82,36 @@ class JavaEbnf {
                     | StringLiteral
                     | NullLiteral
 
+            //Inheritance
             Type >> PrimitiveType | ReferenceType
 
+            //Break into PrimitiveType1 - ordinary, and PrimitiveType2 - ordinary?. PrimitiveType - inheritance.
             PrimitiveType >> { Annotation } & NumericType | { Annotation } & "boolean"
 
+            //Inheritance
             NumericType >> IntegralType | FloatingPointType
 
+            //Enum
             IntegralType >> "byte" | "short" | "int" | "long" | "char"
 
+            //Enum
             FloatingPointType >> "float" | "double"
 
+            //Inheritance
             ReferenceType >> ClassOrInterfaceType | TypeVariable | ArrayType
 
+            //Inheritance
             ClassOrInterfaceType >> ClassType | InterfaceType
 
+            //Inheritance of classes with sequences
             ClassType >> { Annotation } & TypeIdentifier & [TypeArguments]
                     | PackageName & "." & { Annotation } & TypeIdentifier & [TypeArguments]
                     | ClassOrInterfaceType & "." & { Annotation } & TypeIdentifier & [TypeArguments]
 
+            //Either cancellable or inheritance by one?
             InterfaceType >> ClassType
 
+            //Ordinary
             TypeVariable >> { Annotation } & TypeIdentifier
 
             ArrayType >> PrimitiveType & Dims

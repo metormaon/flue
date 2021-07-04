@@ -294,10 +294,6 @@ class EBNF {
 
         } while (copyOfFollow != follow)
 
-//        follow.each {
-//            it.value -= ε
-//        }
-
         follow
     }
 
