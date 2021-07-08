@@ -67,6 +67,8 @@ class JavaEbnfAnnotated {
             //A -> B | C & D | E
 
             //Left is an interface. Right is class (or interface) that implements (also) left.
+          //  Category: A -> B
+            
             Identifier >> IdentifierChars
             TypeIdentifier >> Identifier
             InterfaceType >> ClassType
@@ -84,6 +86,7 @@ class JavaEbnfAnnotated {
 
             //Removing non-informative tokens, then: left is an interface. Right is class (or interface) that
             // implements (also) left.
+               //  Category: A -> B
             AdditionalBound >> "&" & InterfaceType
             TypeArguments >> "<" & TypeArgumentList & ">"
             SingleTypeImportDeclaration >> "import" & TypeName & ";"
@@ -109,9 +112,11 @@ class JavaEbnfAnnotated {
             PostIncrementExpression >> PostfixExpression & "++"
             PostDecrementExpression >> PostfixExpression & "--"
 
-            //Class with A string member
+            //Inlinig of RE over characters should lead to another regular expression.
             JavaLetter >> "[A-Za-z]"
             JavaLetterOrDigit >> "[A-Za-z0-9_]"
+
+// Non infomrational non-terminals: are there any
 
             //Left is interface. All right options implement left.
             Literal >> IntegerLiteral
@@ -213,6 +218,8 @@ class JavaEbnfAnnotated {
                     | AnnotationTypeDeclaration
 
             //Removing non-informative tokens, then: left is interface. All right options implement left.
+            // Introduce new class? You may need to apply the distributive law.
+            // Another issue is the distributive law....
             UnaryExpression >> PreIncrementExpression
                     | PreDecrementExpression
                     | "+" & UnaryExpression
