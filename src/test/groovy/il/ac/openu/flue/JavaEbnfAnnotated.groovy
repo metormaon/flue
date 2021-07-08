@@ -56,383 +56,116 @@ class JavaEbnfAnnotated {
 
     static void main(String[] args) {
         EBNF java = ebnf {
-            //Redundant
+            //enums should be flyweights
+
+            //If:
+            //A -> B
+            //A -> C & D | E
+            //Then:
+            //A -> (B) | (C & D | E)
+            //And finally:
+            //A -> B | C & D | E
+
+            //Left is an interface. Right is class (or interface) that implements (also) left.
             Identifier >> IdentifierChars
+            TypeIdentifier >> Identifier
+            InterfaceType >> ClassType
+            TypeParameterModifier >> Annotation
+            UnqualifiedMethodIdentifier >> Identifier
+            MethodName >> UnqualifiedMethodIdentifier
+            PackageModifier >> Annotation
+            UnannInterfaceType >> UnannClassType
+            UnannTypeVariable >> TypeIdentifier
+            SimpleTypeName >> TypeIdentifier
+            EnumConstantModifier >> Annotation
+            CaseConstant >> ConditionalExpression
+            ForUpdate >> StatementExpressionList
+            ConstantExpression >> Expression
 
-            //Ordinary, with List
-            IdentifierChars >> JavaLetter & { JavaLetterOrDigit }
+            //Removing non-informative tokens, then: left is an interface. Right is class (or interface) that
+            // implements (also) left.
+            AdditionalBound >> "&" & InterfaceType
+            TypeArguments >> "<" & TypeArgumentList & ">"
+            SingleTypeImportDeclaration >> "import" & TypeName & ";"
+            TypeImportOnDemandDeclaration >> "import" & PackageOrTypeName & "." & "*" & ";"
+            StaticImportOnDemandDeclaration >> "import" & "static" & TypeName & "." & "*" & ";"
+            TypeParameters >> "<" & TypeParameterList & ">"
+            Superclass >> "extends" & ClassType
+            Superinterfaces >> "implements" & InterfaceTypeList
+            Throws >> "throws" & ExceptionTypeList
+            InstanceInitializer >> Block
+            StaticInitializer >> "static" & Block
+            ExtendsInterfaces >> "extends" & InterfaceTypeList
+            DefaultValue >> "default" & ElementValue
+            MarkerAnnotation >> "@" & TypeName
+            LocalVariableDeclarationStatement >> LocalVariableDeclaration & ";"
+            EmptyStatement >> ";"
+            ExpressionStatement >> StatementExpression & ";"
+            YieldStatement >> "yield" & Expression & ";"
+            ThrowStatement >> "throw" & Expression & ";"
+            Finally >> "finally" & Block
+            PreIncrementExpression >> "++" & UnaryExpression
+            PreDecrementExpression >> "--" & UnaryExpression
+            PostIncrementExpression >> PostfixExpression & "++"
+            PostDecrementExpression >> PostfixExpression & "--"
 
-            //Class with String value
+            //Class with A string member
             JavaLetter >> "[A-Za-z]"
-
-            //Class with String value
             JavaLetterOrDigit >> "[A-Za-z0-9_]"
 
-            //Redundant
-            TypeIdentifier >> Identifier
-
-            //Redundant
-            UnqualifiedMethodIdentifier >> Identifier
-
-            //Inheritance
+            //Left is interface. All right options implement left.
             Literal >> IntegerLiteral
                     | FloatingPointLiteral
                     | BooleanLiteral
                     | CharacterLiteral
                     | StringLiteral
                     | NullLiteral
-
-            //Inheritance
             Type >> PrimitiveType | ReferenceType
-
-            //Break into PrimitiveType1 - ordinary, and PrimitiveType2 - ordinary?. PrimitiveType - inheritance.
-            PrimitiveType >> { Annotation } & NumericType | { Annotation } & "boolean"
-
-            //Inheritance
             NumericType >> IntegralType | FloatingPointType
-
-            //Enum
-            IntegralType >> "byte" | "short" | "int" | "long" | "char"
-
-            //Enum
-            FloatingPointType >> "float" | "double"
-
-            //Inheritance
             ReferenceType >> ClassOrInterfaceType | TypeVariable | ArrayType
-
-            //Inheritance
             ClassOrInterfaceType >> ClassType | InterfaceType
-
-            //Inheritance of classes with sequences
-            ClassType >> { Annotation } & TypeIdentifier & [TypeArguments]
-                    | PackageName & "." & { Annotation } & TypeIdentifier & [TypeArguments]
-                    | ClassOrInterfaceType & "." & { Annotation } & TypeIdentifier & [TypeArguments]
-
-            //Either cancellable or inheritance by one?
-            InterfaceType >> ClassType
-
-            //Ordinary
-            TypeVariable >> { Annotation } & TypeIdentifier
-
-            ArrayType >> PrimitiveType & Dims
-                    | ClassOrInterfaceType & Dims
-                    | TypeVariable & Dims
-
-            Dims >> { Annotation } & "[" & "]" & { { Annotation } & "[" & "]" }
-
-            TypeParameter >> { TypeParameterModifier } & TypeIdentifier & [TypeBound]
-
-            TypeParameterModifier >> Annotation
-
-            TypeBound >> "extends" & TypeVariable | "extends" & ClassOrInterfaceType & { AdditionalBound }
-
-            AdditionalBound >> "&" & InterfaceType
-
-            TypeArguments >> "<" & TypeArgumentList & ">"
-
-            TypeArgumentList >> TypeArgument & { "," & TypeArgument }
-
             TypeArgument >> ReferenceType | Wildcard
-
-            Wildcard >> { Annotation } & "?" & [WildcardBounds]
-
-            WildcardBounds >> "extends" & ReferenceType
-                    | "super" & ReferenceType
-
-            ModuleName >> Identifier
-                    | ModuleName & "." & Identifier
-
-            PackageName >> Identifier
-                    | PackageName & "." & Identifier
-
-            TypeName >> TypeIdentifier
-                    | PackageOrTypeName & "." & TypeIdentifier
-
-            ExpressionName >> Identifier
-                    | AmbiguousName & "." & Identifier
-
-            MethodName >> UnqualifiedMethodIdentifier
-
-            PackageOrTypeName >> Identifier
-                    | PackageOrTypeName & "." & Identifier
-
-            AmbiguousName >> Identifier
-                    | AmbiguousName & "." & Identifier
-
             CompilationUnit >> OrdinaryCompilationUnit
                     | ModularCompilationUnit
-
-            OrdinaryCompilationUnit >> [PackageDeclaration] & {ImportDeclaration} & {TypeDeclaration}
-
-            ModularCompilationUnit >> {ImportDeclaration} & ModuleDeclaration
-
-            PackageDeclaration >> {PackageModifier} & "package" & Identifier & {"." & Identifier} & ";"
-
-            PackageModifier >> Annotation
-
             ImportDeclaration >> SingleTypeImportDeclaration
                     | TypeImportOnDemandDeclaration
                     | SingleStaticImportDeclaration
                     | StaticImportOnDemandDeclaration
-
-            SingleTypeImportDeclaration >> "import" & TypeName & ";"
-
-            TypeImportOnDemandDeclaration >> "import" & PackageOrTypeName & "." & "*" & ";"
-
-            SingleStaticImportDeclaration >> "import" & "static" & TypeName & "." & Identifier & ";"
-
-            StaticImportOnDemandDeclaration >> "import" & "static" & TypeName & "." & "*" & ";"
-
-            TypeDeclaration >> ClassDeclaration
-                    | InterfaceDeclaration
-                    | ";"
-
-            ModuleDeclaration >> {Annotation} & ["open"] & "module" & Identifier & {"." & Identifier}
-                    & "{" & {ModuleDirective} & "}"
-
-            ModuleDirective >> "requires" & {RequiresModifier} & ModuleName & ";"
-                    | "exports" & PackageName & ["to" & ModuleName & {"," & ModuleName}] & ";"
-                    | "opens" & PackageName & ["to" & ModuleName & {"," & ModuleName}] & ";"
-                    | "uses" & TypeName & ";"
-                    | "provides" & TypeName & "with" & TypeName & {"," & TypeName} & ";"
-
-            RequiresModifier >> "transitive" | "static"
-
             ClassDeclaration >> NormalClassDeclaration
                     | EnumDeclaration
-
-            NormalClassDeclaration >> {ClassModifier} & "class" & TypeIdentifier & [TypeParameters] & [Superclass]
-                    & [Superinterfaces] & ClassBody
-
-            ClassModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static"
-                    | "final" | "strictfp"
-
-            TypeParameters >> "<" & TypeParameterList & ">"
-
-            TypeParameterList >> TypeParameter & {"," & TypeParameter}
-
-            Superclass >> "extends" & ClassType
-
-            Superinterfaces >> "implements" & InterfaceTypeList
-
-            InterfaceTypeList >> InterfaceType & {"," & InterfaceType}
-
-            ClassBody >> "{" & {ClassBodyDeclaration} & "}"
-
             ClassBodyDeclaration >> ClassMemberDeclaration
                     | InstanceInitializer
                     | StaticInitializer
                     | ConstructorDeclaration
-
-            ClassMemberDeclaration >> FieldDeclaration
-                    | MethodDeclaration
-                    | ClassDeclaration
-                    | InterfaceDeclaration
-                    | ";"
-
-            FieldDeclaration >> {FieldModifier} & UnannType & VariableDeclaratorList & ";"
-
-            FieldModifier >> Annotation | "public" | "protected" | "private" | "static" | "final"
-                    | "transient" | "volatile"
-
-            VariableDeclaratorList >> VariableDeclarator & {"," & VariableDeclarator}
-
-            VariableDeclarator >> VariableDeclaratorId & ["=" & VariableInitializer]
-
-            VariableDeclaratorId >> Identifier & [Dims]
-
             VariableInitializer >> Expression
                     | ArrayInitializer
-
             UnannType >> UnannPrimitiveType
                     | UnannReferenceType
-
-            UnannPrimitiveType >> NumericType
-                    | "boolean"
-
             UnannReferenceType >> UnannClassOrInterfaceType
                     | UnannTypeVariable
                     | UnannArrayType
-
             UnannClassOrInterfaceType >> UnannClassType
                     | UnannInterfaceType
-
-            UnannClassType >> TypeIdentifier & [TypeArguments]
-                    | PackageName & "." & {Annotation} & TypeIdentifier & [TypeArguments]
-                    | UnannClassOrInterfaceType & "." & {Annotation} & TypeIdentifier & [TypeArguments]
-
-            UnannInterfaceType >> UnannClassType
-
-            UnannTypeVariable >> TypeIdentifier
-
-            UnannArrayType >> UnannPrimitiveType & Dims
-                    | UnannClassOrInterfaceType & Dims
-                    | UnannTypeVariable & Dims
-
-            MethodDeclaration >> {MethodModifier} & MethodHeader & MethodBody
-
-            MethodModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static" | "final"
-                    | "synchronized" | "native" | "strictfp"
-
-            MethodHeader >> Result & MethodDeclarator & [Throws]
-                    | TypeParameters & {Annotation} & Result & MethodDeclarator & [Throws]
-
-            Result >> UnannType
-                    | "void"
-
-            MethodDeclarator >> Identifier & "(" & [ReceiverParameter & ","] & [FormalParameterList] & ")" & [Dims]
-
-            ReceiverParameter >> {Annotation} & UnannType & [Identifier & "."] & "this"
-
-            FormalParameterList >> FormalParameter & {"," & FormalParameter}
-
-            FormalParameter >> {VariableModifier} & UnannType & VariableDeclaratorId
-                    | VariableArityParameter
-
-            VariableArityParameter >> {VariableModifier} & UnannType & {Annotation} & "..." & Identifier
-
-            VariableModifier >> Annotation
-                    | "final"
-
-            Throws >> "throws" & ExceptionTypeList
-
-            ExceptionTypeList >> ExceptionType & {"," & ExceptionType}
-
-            ExceptionType >> ClassType
-                    | TypeVariable
-
-            MethodBody >> Block
-                    | ";"
-
-            InstanceInitializer >> Block
-
-            StaticInitializer >> "static" & Block
-
-            ConstructorDeclaration >> {ConstructorModifier} & ConstructorDeclarator & [Throws] & ConstructorBody
-
-            ConstructorModifier >> Annotation | "public" | "protected" | "private"
-
-            ConstructorDeclarator >> [TypeParameters] & SimpleTypeName & "(" & [ReceiverParameter & ","]
-                    & [FormalParameterList] & ")"
-
-            SimpleTypeName >> TypeIdentifier
-
-            ConstructorBody >> "{" & [ExplicitConstructorInvocation] & [BlockStatements] & "}"
-
-            ExplicitConstructorInvocation >> [TypeArguments] & "this" & "(" & [ArgumentList] & ")" & ";"
-                    | [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
-                    | ExpressionName & "." & [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
-                    | Primary & "." & [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
-
-            EnumDeclaration >> {ClassModifier} & "enum" & TypeIdentifier & [Superinterfaces] & EnumBody
-
-            EnumBody >> "{" & [EnumConstantList] & [","] & [EnumBodyDeclarations] & "}"
-
-            EnumConstantList >> EnumConstant & {"," & EnumConstant}
-
-            EnumConstant >> {EnumConstantModifier} & Identifier & ["(" & [ArgumentList] & ")"] & [ClassBody]
-
-            EnumConstantModifier >> Annotation
-
-            EnumBodyDeclarations >> ";" & {ClassBodyDeclaration}
-
-            InterfaceDeclaration >> NormalInterfaceDeclaration
-                    | AnnotationTypeDeclaration
-
-            NormalInterfaceDeclaration >> {InterfaceModifier} & "interface" & TypeIdentifier & [TypeParameters]
-                    & [ExtendsInterfaces] & InterfaceBody
-
-            InterfaceModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static" | "strictfp"
-
-            ExtendsInterfaces >> "extends" & InterfaceTypeList
-
-            InterfaceBody >> "{" & {InterfaceMemberDeclaration} & "}"
-
-            InterfaceMemberDeclaration >> ConstantDeclaration
-                    | InterfaceMethodDeclaration
-                    | ClassDeclaration
-                    | InterfaceDeclaration
-                    | ";"
-
-            ConstantDeclaration >> {ConstantModifier} & UnannType & VariableDeclaratorList & ";"
-
-            ConstantModifier >> Annotation | "public" | "static" | "final"
-
-            InterfaceMethodDeclaration >> {InterfaceMethodModifier} & MethodHeader & MethodBody
-
-            InterfaceMethodModifier >> Annotation | "public" | "private" | "abstract" | "default" | "static" | "strictfp"
-
-            AnnotationTypeDeclaration >> {InterfaceModifier} & "@" & "interface" & TypeIdentifier & AnnotationTypeBody
-
-            AnnotationTypeBody >> "{" & {AnnotationTypeMemberDeclaration} & "}"
-
-            AnnotationTypeMemberDeclaration >> AnnotationTypeElementDeclaration
-                    | ConstantDeclaration
-                    | ClassDeclaration
-                    | InterfaceDeclaration
-                    | ";"
-
-            AnnotationTypeElementDeclaration >> {AnnotationTypeElementModifier} & UnannType & Identifier & "(" & ")" & [Dims]
-                    & [DefaultValue] & ";"
-
-            AnnotationTypeElementModifier >> Annotation | "public" | "abstract"
-
-            DefaultValue >> "default" & ElementValue
-
             Annotation >> NormalAnnotation
                     | MarkerAnnotation
                     | SingleElementAnnotation
-
-            NormalAnnotation >> "@" & TypeName & "(" & [ElementValuePairList] & ")"
-
-            ElementValuePairList >> ElementValuePair & {"," & ElementValuePair}
-
-            ElementValuePair >> Identifier & "=" & ElementValue
-
             ElementValue >> ConditionalExpression
                     | ElementValueArrayInitializer
                     | Annotation
-
-            ElementValueArrayInitializer >> "{" & [ElementValueList] & [","] & "}"
-
-            ElementValueList >> ElementValue & {"," & ElementValue}
-
-            MarkerAnnotation >> "@" & TypeName
-
-            SingleElementAnnotation >> "@" & TypeName & "(" & ElementValue & ")"
-
-            ArrayInitializer >> "{" & [VariableInitializerList] & [","] & "}"
-
-            VariableInitializerList >> VariableInitializer & {"," & VariableInitializer}
-
-            Block >> "{" & [BlockStatements] & "}"
-
-            BlockStatements >> BlockStatement & {BlockStatement}
-
             BlockStatement >> LocalVariableDeclarationStatement
                     | ClassDeclaration
                     | Statement
-
-            LocalVariableDeclarationStatement >> LocalVariableDeclaration & ";"
-
-            LocalVariableDeclaration >> {VariableModifier} & LocalVariableType & VariableDeclaratorList
-
-            LocalVariableType >> UnannType
-                    | "var"
-
             Statement >> StatementWithoutTrailingSubstatement
                     | LabeledStatement
                     | IfThenStatement
                     | IfThenElseStatement
                     | WhileStatement
                     | ForStatement
-
             StatementNoShortIf >> StatementWithoutTrailingSubstatement
                     | LabeledStatementNoShortIf
                     | IfThenElseStatementNoShortIf
                     | WhileStatementNoShortIf
                     | ForStatementNoShortIf
-
             StatementWithoutTrailingSubstatement >> Block
                     | EmptyStatement
                     | ExpressionStatement
@@ -446,15 +179,6 @@ class JavaEbnfAnnotated {
                     | ThrowStatement
                     | TryStatement
                     | YieldStatement
-
-            EmptyStatement >> ";"
-
-            LabeledStatement >> Identifier & ":" & Statement
-
-            LabeledStatementNoShortIf >> Identifier & ":" & StatementNoShortIf
-
-            ExpressionStatement >> StatementExpression & ";"
-
             StatementExpression >> Assignment
                     | PreIncrementExpression
                     | PreDecrementExpression
@@ -462,100 +186,81 @@ class JavaEbnfAnnotated {
                     | PostDecrementExpression
                     | MethodInvocation
                     | ClassInstanceCreationExpression
-
-            IfThenStatement >> "if" & "(" & Expression & ")" & Statement
-
-            IfThenElseStatement >> "if" & "(" & Expression & ")" & StatementNoShortIf & "else" & Statement
-
-            IfThenElseStatementNoShortIf >> "if" & "(" & Expression & ")" & StatementNoShortIf & "else" & StatementNoShortIf
-
-            AssertStatement >> "assert" & Expression & ";"
-                    | "assert" & Expression & ":" & Expression & ";"
-
-            SwitchStatement >> "switch" & "(" & Expression & ")" & SwitchBlock
-
-            SwitchBlock >> "{" & SwitchRule & {SwitchRule} & "}"
-                    | "{" & {SwitchBlockStatementGroup} & {SwitchLabel & ":"} & "}"
-
-            SwitchRule >> SwitchLabel & "->" & Expression & ";"
-                    | SwitchLabel & "->" & Block
-                    | SwitchLabel & "->" & ThrowStatement
-
-            SwitchBlockStatementGroup >> SwitchLabel & ":" & {SwitchLabel & ":"} & BlockStatements
-
-            SwitchLabel >> "case" & CaseConstant & {"," & CaseConstant}
-                    | "default"
-
-            CaseConstant >> ConditionalExpression
-
-            WhileStatement >> "while" & "(" & Expression & ")" & Statement
-
-            WhileStatementNoShortIf >> "while" & "(" & Expression & ")" & StatementNoShortIf
-
-            DoStatement >> "do" & Statement & "while" & "(" & Expression & ")" & ";"
-
             ForStatement >> BasicForStatement
                     | EnhancedForStatement
-
             ForStatementNoShortIf >> BasicForStatementNoShortIf
                     | EnhancedForStatementNoShortIf
-
-            BasicForStatement >> "for" & "(" & [ForInit] & ";" & [Expression] & ";" & [ForUpdate] & ")" & Statement
-
-            BasicForStatementNoShortIf >> "for" & "(" & [ForInit] & ";" & [Expression] & ";" & [ForUpdate]
-                    & ")" & StatementNoShortIf
-
             ForInit >> StatementExpressionList
                     | LocalVariableDeclaration
-
-            ForUpdate >> StatementExpressionList
-
-            StatementExpressionList >> StatementExpression & {"," & StatementExpression}
-
-            EnhancedForStatement >> "for" & "(" & {VariableModifier} & LocalVariableType & VariableDeclaratorId & ":"
-                    & Expression & ")" & Statement
-
-            EnhancedForStatementNoShortIf >> "for" & "(" & {VariableModifier} & LocalVariableType & VariableDeclaratorId & ":"
-                    & Expression & ")" & StatementNoShortIf
-
-            BreakStatement >> "break" & [Identifier] & ";"
-
-            YieldStatement >> "yield" & Expression & ";"
-
-            ContinueStatement >> "continue" & [Identifier] & ";"
-
-            ReturnStatement >> "return" & [Expression] & ";"
-
-            ThrowStatement >> "throw" & Expression & ";"
-
-            SynchronizedStatement >> "synchronized" & "(" & Expression & ")" & Block
-
-            TryStatement >> "try" & Block & Catches
-                    | "try" & Block & [Catches] & Finally
-                    | TryWithResourcesStatement
-
-            Catches >> CatchClause & {CatchClause}
-
-            CatchClause >> "catch" & "(" & CatchFormalParameter & ")" & Block
-
-            CatchFormalParameter >> {VariableModifier} & CatchType & VariableDeclaratorId
-
-            CatchType >> UnannClassType & {"|" & ClassType}
-
-            Finally >> "finally" & Block
-
-            TryWithResourcesStatement >> "try" & ResourceSpecification & Block & [Catches] & [Finally]
-
-            ResourceSpecification >> "(" & ResourceList & [";"] & ")"
-
-            ResourceList >> Resource & {";" & Resource}
-
-            Resource >> {VariableModifier} & LocalVariableType & Identifier & "=" & Expression
-                    | VariableAccess
-
             Primary >> PrimaryNoNewArray
                     | ArrayCreationExpression
+            Expression >> LambdaExpression
+                    | AssignmentExpression
+            LambdaBody >> Expression
+                    | Block
+            AssignmentExpression >> ConditionalExpression
+                    | Assignment
+            LeftHandSide >> ExpressionName
+                    | FieldAccess
+                    | ArrayAccess
+            PostfixExpression >> Primary
+                    | ExpressionName
+                    | PostIncrementExpression
+                    | PostDecrementExpression
+            ExceptionType >> ClassType
+                    | TypeVariable
+            InterfaceDeclaration >> NormalInterfaceDeclaration
+                    | AnnotationTypeDeclaration
 
+            //Removing non-informative tokens, then: left is interface. All right options implement left.
+            UnaryExpression >> PreIncrementExpression
+                    | PreDecrementExpression
+                    | "+" & UnaryExpression
+                    | "-" & UnaryExpression
+                    | UnaryExpressionNotPlusMinus
+            UnaryExpressionNotPlusMinus >> PostfixExpression
+                    | "~" & UnaryExpression
+                    | "!" & UnaryExpression
+                    | CastExpression
+                    | SwitchExpression
+
+            //Left is interface. All right options implement left. All occurrences of left in right sides become
+            // optional
+            TypeDeclaration >> ClassDeclaration
+                    | InterfaceDeclaration
+                    | ";"
+            ClassMemberDeclaration >> FieldDeclaration
+                    | MethodDeclaration
+                    | ClassDeclaration
+                    | InterfaceDeclaration
+                    | ";"
+            UnannPrimitiveType >> NumericType
+                    | "boolean"
+            Result >> UnannType
+                    | "void"
+            LocalVariableType >> UnannType
+                    | "var"
+            TypeArgumentsOrDiamond >> TypeArguments
+                    | "<>"
+            LambdaParameterType >> UnannType
+                    | "var"
+            VariableModifier >> Annotation
+                    | "final"
+            MethodBody >> Block
+                    | ";"
+            InterfaceMemberDeclaration >> ConstantDeclaration
+                    | InterfaceMethodDeclaration
+                    | ClassDeclaration
+                    | InterfaceDeclaration
+                    | ";"
+            AnnotationTypeMemberDeclaration >> AnnotationTypeElementDeclaration
+                    | ConstantDeclaration
+                    | ClassDeclaration
+                    | InterfaceDeclaration
+                    | ";"
+
+            //Removing non-informative tokens, then: Left is interface. All right options implement left. All
+            // occurrences of left in right sides become optional
             PrimaryNoNewArray >> Literal
                     | ClassLiteral
                     | "this"
@@ -567,40 +272,190 @@ class JavaEbnfAnnotated {
                     | MethodInvocation
                     | MethodReference
 
-            ClassLiteral >> TypeName & {"[" & "]"} & "." & "class"
-                    | NumericType & {"[" & "]"} & "." & "class"
-                    | "boolean" & {"[" & "]"} & "." & "class"
-                    | "void" & "." & "class"
+            //Right becomes inner enum of left. Left is class with enum field.
+            IntegralType >> "byte" | "short" | "int" | "long" | "char"
+            FloatingPointType >> "float" | "double"
+            AssignmentOperator >> "=" | "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
+            RequiresModifier >> "transitive" | "static"
 
-            ClassInstanceCreationExpression >> UnqualifiedClassInstanceCreationExpression
-                    | ExpressionName & "." & UnqualifiedClassInstanceCreationExpression
-                    | Primary & "." & UnqualifiedClassInstanceCreationExpression
+            //left is interface inherited by class in right, and by a class that has an enum as a field
+            ClassModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static"
+                    | "final" | "strictfp"
+            FieldModifier >> Annotation | "public" | "protected" | "private" | "static" | "final"
+                    | "transient" | "volatile"
+            MethodModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static" | "final"
+                    | "synchronized" | "native" | "strictfp"
+            ConstructorModifier >> Annotation | "public" | "protected" | "private"
+            InterfaceModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static" | "strictfp"
+            ConstantModifier >> Annotation | "public" | "static" | "final"
+            InterfaceMethodModifier >> Annotation | "public" | "private" | "abstract" | "default" | "static" | "strictfp"
+            AnnotationTypeElementModifier >> Annotation | "public" | "abstract"
 
+            //Left is a class with fields for all non terminals in right
+            Assignment >> LeftHandSide & AssignmentOperator & Expression
+
+            //Remove tokens, then: Left is a class with fields for all non terminals in right
+            SingleStaticImportDeclaration >> "import" & "static" & TypeName & "." & Identifier & ";"
+            ElementValuePair >> Identifier & "=" & ElementValue
+            SingleElementAnnotation >> "@" & TypeName & "(" & ElementValue & ")"
+            LabeledStatement >> Identifier & ":" & Statement
+            LabeledStatementNoShortIf >> Identifier & ":" & StatementNoShortIf
+            IfThenStatement >> "if" & "(" & Expression & ")" & Statement
+            IfThenElseStatement >> "if" & "(" & Expression & ")" & StatementNoShortIf & "else" & Statement
+            IfThenElseStatementNoShortIf >> "if" & "(" & Expression & ")" & StatementNoShortIf & "else" & StatementNoShortIf
+            SwitchStatement >> "switch" & "(" & Expression & ")" & SwitchBlock
+            WhileStatement >> "while" & "(" & Expression & ")" & Statement
+            WhileStatementNoShortIf >> "while" & "(" & Expression & ")" & StatementNoShortIf
+            DoStatement >> "do" & Statement & "while" & "(" & Expression & ")" & ";"
+            SynchronizedStatement >> "synchronized" & "(" & Expression & ")" & Block
+            CatchClause >> "catch" & "(" & CatchFormalParameter & ")" & Block
+            LambdaExpression >> LambdaParameters & "->" & LambdaBody
+            SwitchExpression >> "switch" & "(" & Expression & ")" & SwitchBlock
+
+            //After potential token removal: Left is a class with fields for all non terminals in right
+            // (some are lists, some are optional)
+            IdentifierChars >> JavaLetter & { JavaLetterOrDigit }
+            TypeVariable >> { Annotation } & TypeIdentifier
+            ModularCompilationUnit >> {ImportDeclaration} & ModuleDeclaration
+            TypeParameter >> { TypeParameterModifier } & TypeIdentifier & [TypeBound]
+            NormalClassDeclaration >> {ClassModifier} & "class" & TypeIdentifier & [TypeParameters] & [Superclass]
+                    & [Superinterfaces] & ClassBody
+            FieldDeclaration >> {FieldModifier} & UnannType & VariableDeclaratorList & ";"
+            VariableDeclarator >> VariableDeclaratorId & ["=" & VariableInitializer]
+            VariableDeclaratorId >> Identifier & [Dims]
+            MethodDeclaration >> {MethodModifier} & MethodHeader & MethodBody
+            MethodDeclarator >> Identifier & "(" & [ReceiverParameter & ","] & [FormalParameterList] & ")" & [Dims]
+            ReceiverParameter >> {Annotation} & UnannType & [Identifier & "."] & "this"
+            VariableArityParameter >> {VariableModifier} & UnannType & {Annotation} & "..." & Identifier
+            Wildcard >> { Annotation } & "?" & [WildcardBounds]
+            OrdinaryCompilationUnit >> [PackageDeclaration] & {ImportDeclaration} & {TypeDeclaration}
+            ClassBody >> "{" & {ClassBodyDeclaration} & "}"
+            ConstructorDeclaration >> {ConstructorModifier} & ConstructorDeclarator & [Throws] & ConstructorBody
+            ConstructorDeclarator >> [TypeParameters] & SimpleTypeName & "(" & [ReceiverParameter & ","]
+                    & [FormalParameterList] & ")"
+            ConstructorBody >> "{" & [ExplicitConstructorInvocation] & [BlockStatements] & "}"
+            EnumDeclaration >> {ClassModifier} & "enum" & TypeIdentifier & [Superinterfaces] & EnumBody
+            EnumBodyDeclarations >> ";" & {ClassBodyDeclaration}
+            NormalInterfaceDeclaration >> {InterfaceModifier} & "interface" & TypeIdentifier & [TypeParameters]
+                    & [ExtendsInterfaces] & InterfaceBody
+            InterfaceBody >> "{" & {InterfaceMemberDeclaration} & "}"
+            ConstantDeclaration >> {ConstantModifier} & UnannType & VariableDeclaratorList & ";"
+            InterfaceMethodDeclaration >> {InterfaceMethodModifier} & MethodHeader & MethodBody
+            AnnotationTypeDeclaration >> {InterfaceModifier} & "@" & "interface" & TypeIdentifier & AnnotationTypeBody
+            AnnotationTypeBody >> "{" & {AnnotationTypeMemberDeclaration} & "}"
+            AnnotationTypeElementDeclaration >> {AnnotationTypeElementModifier} & UnannType & Identifier
+                    & "(" & ")" & [Dims] & [DefaultValue] & ";"
+            NormalAnnotation >> "@" & TypeName & "(" & [ElementValuePairList] & ")"
+            Block >> "{" & [BlockStatements] & "}"
+            BlockStatements >> BlockStatement & {BlockStatement}
+            LocalVariableDeclaration >> {VariableModifier} & LocalVariableType & VariableDeclaratorList
+            BasicForStatement >> "for" & "(" & [ForInit] & ";" & [Expression] & ";" & [ForUpdate] & ")" & Statement
+            BasicForStatementNoShortIf >> "for" & "(" & [ForInit] & ";" & [Expression] & ";" & [ForUpdate]
+                    & ")" & StatementNoShortIf
+            StatementExpressionList >> StatementExpression & {"," & StatementExpression}
+            EnhancedForStatement >> "for" & "(" & {VariableModifier} & LocalVariableType & VariableDeclaratorId & ":"
+                    & Expression & ")" & Statement
+            EnhancedForStatementNoShortIf >> "for" & "(" & {VariableModifier} & LocalVariableType & VariableDeclaratorId & ":"
+                    & Expression & ")" & StatementNoShortIf
+            BreakStatement >> "break" & [Identifier] & ";"
+            ContinueStatement >> "continue" & [Identifier] & ";"
+            ReturnStatement >> "return" & [Expression] & ";"
+            CatchFormalParameter >> {VariableModifier} & CatchType & VariableDeclaratorId
+            CatchType >> UnannClassType & {"|" & ClassType}
+            TryWithResourcesStatement >> "try" & ResourceSpecification & Block & [Catches] & [Finally]
             UnqualifiedClassInstanceCreationExpression >> "new" & [TypeArguments] & ClassOrInterfaceTypeToInstantiate & "("
                     & [ArgumentList] & ")" & [ClassBody]
+            DimExpr >> {Annotation} & "[" & Expression & "]"
 
+            //Sequence with X x; List<X> lx;
+            TypeArgumentList >> TypeArgument & { "," & TypeArgument }
+            PackageDeclaration >> {PackageModifier} & "package" & Identifier & {"." & Identifier} & ";"
+            TypeParameterList >> TypeParameter & {"," & TypeParameter}
+            InterfaceTypeList >> InterfaceType & {"," & InterfaceType}
+            VariableDeclaratorList >> VariableDeclarator & {"," & VariableDeclarator}
+            FormalParameterList >> FormalParameter & {"," & FormalParameter}
+            ExceptionTypeList >> ExceptionType & {"," & ExceptionType}
+            EnumConstantList >> EnumConstant & {"," & EnumConstant}
+            ElementValuePairList >> ElementValuePair & {"," & ElementValuePair}
+            ElementValueList >> ElementValue & {"," & ElementValue}
+            VariableInitializerList >> VariableInitializer & {"," & VariableInitializer}
+            SwitchBlockStatementGroup >> SwitchLabel & ":" & {SwitchLabel & ":"} & BlockStatements
+            Catches >> CatchClause & {CatchClause}
+            ResourceList >> Resource & {";" & Resource}
+            ArgumentList >> Expression & {"," & Expression}
+            DimExprs >> DimExpr & {DimExpr}
+
+            //Sequence with boolean for the optional token
+            ModuleDeclaration >> {Annotation} & ["open"] & "module" & Identifier & {"." & Identifier}
+                    & "{" & {ModuleDirective} & "}"
+            EnumBody >> "{" & [EnumConstantList] & [","] & [EnumBodyDeclarations] & "}"
+            ResourceSpecification >> "(" & ResourceList & [";"] & ")"
+            ElementValueArrayInitializer >> "{" & [ElementValueList] & [","] & "}"
+            ArrayInitializer >> "{" & [VariableInitializerList] & [","] & "}"
+
+            //After token removal, {{ x }} should be considered as { x } (x is one element)
             ClassOrInterfaceTypeToInstantiate >> {Annotation} & Identifier & {"." & {Annotation}
                     & Identifier} & [TypeArgumentsOrDiamond]
+            Dims >> { Annotation } & "[" & "]" & { { Annotation } & "[" & "]" }
 
-            TypeArgumentsOrDiamond >> TypeArguments
-                    | "<>"
+            //After token removal, [[ x ]] should be considered as [ x ] (x is one element)
+            EnumConstant >> {EnumConstantModifier} & Identifier & ["(" & [ArgumentList] & ")"] & [ClassBody]
 
+            //A -> seq1 | seq2 - A is an interface. seq1 and seq2 become classes (named something like A1, A2) that
+            //implement A
+            PrimitiveType >> { Annotation } & NumericType | { Annotation } & "boolean"
+            ClassType >> { Annotation } & TypeIdentifier & [TypeArguments]
+                    | PackageName & "." & { Annotation } & TypeIdentifier & [TypeArguments]
+                    | ClassOrInterfaceType & "." & { Annotation } & TypeIdentifier & [TypeArguments]
+            TypeBound >> "extends" & TypeVariable | "extends" & ClassOrInterfaceType & { AdditionalBound }
+            ModuleName >> Identifier
+                    | ModuleName & "." & Identifier
+            PackageName >> Identifier
+                    | PackageName & "." & Identifier
+            TypeName >> TypeIdentifier
+                    | PackageOrTypeName & "." & TypeIdentifier
+            ExpressionName >> Identifier
+                    | AmbiguousName & "." & Identifier
+            PackageOrTypeName >> Identifier
+                    | PackageOrTypeName & "." & Identifier
+            AmbiguousName >> Identifier
+                    | AmbiguousName & "." & Identifier
+            UnannClassType >> TypeIdentifier & [TypeArguments]
+                    | PackageName & "." & {Annotation} & TypeIdentifier & [TypeArguments]
+                    | UnannClassOrInterfaceType & "." & {Annotation} & TypeIdentifier & [TypeArguments]
+            AssertStatement >> "assert" & Expression & ";"
+                    | "assert" & Expression & ":" & Expression & ";"
+            SwitchBlock >> "{" & SwitchRule & {SwitchRule} & "}"
+                    | "{" & {SwitchBlockStatementGroup} & {SwitchLabel & ":"} & "}"
+            SwitchRule >> SwitchLabel & "->" & Expression & ";"
+                    | SwitchLabel & "->" & Block
+                    | SwitchLabel & "->" & ThrowStatement
+            SwitchLabel >> "case" & CaseConstant & {"," & CaseConstant}
+                    | "default"
+            TryStatement >> "try" & Block & Catches
+                    | "try" & Block & [Catches] & Finally
+                    | TryWithResourcesStatement
+            Resource >> {VariableModifier} & LocalVariableType & Identifier & "=" & Expression
+                    | VariableAccess
+            MethodHeader >> Result & MethodDeclarator & [Throws]
+                    | TypeParameters & {Annotation} & Result & MethodDeclarator & [Throws]
+            FormalParameter >> {VariableModifier} & UnannType & VariableDeclaratorId
+                    | VariableArityParameter
+            ExplicitConstructorInvocation >> [TypeArguments] & "this" & "(" & [ArgumentList] & ")" & ";"
+                    | [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
+                    | ExpressionName & "." & [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
+                    | Primary & "." & [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
             FieldAccess >> Primary & "." & Identifier
                     | "super" & "." & Identifier
                     | TypeName & "." & "super" & "." & Identifier
-
             ArrayAccess >> ExpressionName & "[" & Expression & "]"
                     | PrimaryNoNewArray & "[" & Expression & "]"
-
             MethodInvocation >> MethodName & "(" & [ArgumentList] & ")"
                     | TypeName & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
                     | ExpressionName & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
                     | Primary & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
                     | "super" & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
                     | TypeName & "." & "super" & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
-
-            ArgumentList >> Expression & {"," & Expression}
-
             MethodReference >> ExpressionName & "::" & [TypeArguments] & Identifier
                     | Primary & "::" & [TypeArguments] & Identifier
                     | ReferenceType & "::" & [TypeArguments] & Identifier
@@ -608,123 +463,87 @@ class JavaEbnfAnnotated {
                     | TypeName & "." & "super" & "::" & [TypeArguments] & Identifier
                     | ClassType & "::" & [TypeArguments] & "new"
                     | ArrayType & "::" & "new"
-
             ArrayCreationExpression >> "new" & PrimitiveType & DimExprs & [Dims]
                     | "new" & ClassOrInterfaceType & DimExprs & [Dims]
                     | "new" & PrimitiveType & Dims & ArrayInitializer
                     | "new" & ClassOrInterfaceType & Dims & ArrayInitializer
-
-            DimExprs >> DimExpr & {DimExpr}
-
-            DimExpr >> {Annotation} & "[" & Expression & "]"
-
-            Expression >> LambdaExpression
-                    | AssignmentExpression
-
-            LambdaExpression >> LambdaParameters & "->" & LambdaBody
-
             LambdaParameters >> "(" & [LambdaParameterList] & ")"
                     | Identifier
-
             LambdaParameterList >> LambdaParameter & {"," & LambdaParameter}
                     | Identifier & {"," & Identifier}
-
             LambdaParameter >> {VariableModifier} & LambdaParameterType & VariableDeclaratorId
                     | VariableArityParameter
-
-            LambdaParameterType >> UnannType
-                    | "var"
-
-            LambdaBody >> Expression
-                    | Block
-
-            AssignmentExpression >> ConditionalExpression
-                    | Assignment
-
-            Assignment >> LeftHandSide & AssignmentOperator & Expression
-
-            LeftHandSide >> ExpressionName
-                    | FieldAccess
-                    | ArrayAccess
-
-            AssignmentOperator >> "=" | "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
-
             ConditionalExpression >> ConditionalOrExpression
                     | ConditionalOrExpression & "?" & Expression & ":" & ConditionalExpression
                     | ConditionalOrExpression & "?" & Expression & ":" & LambdaExpression
-
             ConditionalOrExpression >> ConditionalAndExpression
                     | ConditionalOrExpression & "||" & ConditionalAndExpression
-
             ConditionalAndExpression >> InclusiveOrExpression
                     | ConditionalAndExpression & "&&" & InclusiveOrExpression
-
             InclusiveOrExpression >> ExclusiveOrExpression
                     | InclusiveOrExpression & "|" & ExclusiveOrExpression
-
             ExclusiveOrExpression >> AndExpression
                     | ExclusiveOrExpression & "^" & AndExpression
-
             AndExpression >> EqualityExpression
                     | AndExpression & "&" & EqualityExpression
+            CastExpression >> "(" & PrimitiveType & ")" & UnaryExpression
+                    | "(" & ReferenceType & {AdditionalBound} & ")" & UnaryExpressionNotPlusMinus
+                    | "(" & ReferenceType & {AdditionalBound} & ")" & LambdaExpression
 
+            //Left becomes an interface. Each right or option implements it. If right is a sequence, it needs an
+            //intermediate class to contain it and implement left
+            ClassInstanceCreationExpression >> UnqualifiedClassInstanceCreationExpression
+                    | ExpressionName & "." & UnqualifiedClassInstanceCreationExpression
+                    | Primary & "." & UnqualifiedClassInstanceCreationExpression
+
+            //Without optimization, this is seq | seq like above. With optimization: A -> B & C | D & C can
+            //be handled this way: B and D are classes with a common interface A1, and A is a class containing
+            //A1 and C
+            ArrayType >> PrimitiveType & Dims
+                    | ClassOrInterfaceType & Dims
+                    | TypeVariable & Dims
+            UnannArrayType >> UnannPrimitiveType & Dims
+                    | UnannClassOrInterfaceType & Dims
+                    | UnannTypeVariable & Dims
+
+            //Optional of more than one element, or list of more than one element, require an intermediate type...
+            ModuleDirective >> "requires" & {RequiresModifier} & ModuleName & ";"
+                    | "exports" & PackageName & ["to" & ModuleName & {"," & ModuleName}] & ";"
+                    | "opens" & PackageName & ["to" & ModuleName & {"," & ModuleName}] & ";"
+                    | "uses" & TypeName & ";"
+                    | "provides" & TypeName & "with" & TypeName & {"," & TypeName} & ";"
+
+            //TODO: A list of non informative - should we replace with an integer?
+            ClassLiteral >> TypeName & {"[" & "]"} & "." & "class"
+                    | NumericType & {"[" & "]"} & "." & "class"
+                    | "boolean" & {"[" & "]"} & "." & "class"
+                    | "void" & "." & "class"
+
+            //TODO: interesting case. If token removal makes options equal, the token / token combination
+            //should become an enum!
             EqualityExpression >> RelationalExpression
                     | EqualityExpression & "==" & RelationalExpression
                     | EqualityExpression & "!=" & RelationalExpression
-
             RelationalExpression >> ShiftExpression
                     | RelationalExpression & "<" & ShiftExpression
                     | RelationalExpression & ">" & ShiftExpression
                     | RelationalExpression & "<=" & ShiftExpression
                     | RelationalExpression & ">=" & ShiftExpression
                     | RelationalExpression & "instanceof" & ReferenceType
-
             ShiftExpression >> AdditiveExpression
                     | ShiftExpression & "<<" & AdditiveExpression
                     | ShiftExpression & ">>" & AdditiveExpression
                     | ShiftExpression & ">>>" & AdditiveExpression
-
             AdditiveExpression >> MultiplicativeExpression
                     | AdditiveExpression & "+" & MultiplicativeExpression
                     | AdditiveExpression & "-" & MultiplicativeExpression
-
             MultiplicativeExpression >> UnaryExpression
                     | MultiplicativeExpression & "*" & UnaryExpression
                     | MultiplicativeExpression & "/" & UnaryExpression
                     | MultiplicativeExpression & "%" & UnaryExpression
+            WildcardBounds >> "extends" & ReferenceType
+                    | "super" & ReferenceType
 
-            UnaryExpression >> PreIncrementExpression
-                    | PreDecrementExpression
-                    | "+" & UnaryExpression
-                    | "-" & UnaryExpression
-                    | UnaryExpressionNotPlusMinus
-
-            PreIncrementExpression >> "++" & UnaryExpression
-
-            PreDecrementExpression >> "--" & UnaryExpression
-
-            UnaryExpressionNotPlusMinus >> PostfixExpression
-                    | "~" & UnaryExpression
-                    | "!" & UnaryExpression
-                    | CastExpression
-                    | SwitchExpression
-
-            PostfixExpression >> Primary
-                    | ExpressionName
-                    | PostIncrementExpression
-                    | PostDecrementExpression
-
-            PostIncrementExpression >> PostfixExpression & "++"
-
-            PostDecrementExpression >> PostfixExpression & "--"
-
-            CastExpression >> "(" & PrimitiveType & ")" & UnaryExpression
-                    | "(" & ReferenceType & {AdditionalBound} & ")" & UnaryExpressionNotPlusMinus
-                    | "(" & ReferenceType & {AdditionalBound} & ")" & LambdaExpression
-
-            SwitchExpression >> "switch" & "(" & Expression & ")" & SwitchBlock
-
-            ConstantExpression >> Expression
         }
 
         println(java.follow())

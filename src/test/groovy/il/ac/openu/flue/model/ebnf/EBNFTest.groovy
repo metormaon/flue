@@ -10,8 +10,6 @@ import il.ac.openu.flue.model.rule.Terminal
 import il.ac.openu.flue.model.rule.Then
 import org.junit.jupiter.api.Test
 
-import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
-
 import static groovy.test.GroovyAssert.shouldFail
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 import static il.ac.openu.flue.model.ebnf.EBNFTest.V.*
