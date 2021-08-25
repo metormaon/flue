@@ -20,20 +20,20 @@ interface Expression {
     }
 }
 
-@EqualsAndHashCode(includeFields=true)
+@EqualsAndHashCode
 abstract class Unary implements Expression {
     Expression child
     Unary(Expression child) { this.child = child }
 }
 
-@EqualsAndHashCode(includeFields=true)
+@EqualsAndHashCode
 abstract class Multinary implements Expression {
     List<Expression> children
     Multinary(List<Expression> children) { this.children = children }
     Multinary(Expression...children) { this(children.toList()) }
 }
 
-@EqualsAndHashCode(includeFields=true)
+@EqualsAndHashCode
 class Terminal implements Expression {
     String terminal
     Terminal(String terminal) { this.terminal = terminal }
@@ -41,7 +41,7 @@ class Terminal implements Expression {
     @Override String toString() { "\"" + terminal + "\"" }
 }
 
-@EqualsAndHashCode(includeFields=true)
+@EqualsAndHashCode
 class NonTerminal implements Expression {
     Variable variable
 
