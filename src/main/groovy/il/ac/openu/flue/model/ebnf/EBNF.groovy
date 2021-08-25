@@ -231,55 +231,28 @@ class EBNF {
         }
     }
 
+    /**
+     * A method for finding all rules that comply with a certain filter. The rule function is a closure that accepts
+     * a rule and returns a boolean that determines whether this rule should be selected.
+     */
     Set<Rule> select(@ClosureParams(value = SimpleType, options = "il.ac.openu.flue.model.rule.Rule")
                             Closure<Boolean> ruleFunction) {
         rules.findAll{ruleFunction(it)}.toSet()
     }
 
-    def <T> T query(
-            @ClosureParams(value = FromString, options = "T, il.ac.openu.flue.model.rule.Rule")
-                    T state, Closure<T> ruleFunction) {
-        rules.inject state, ruleFunction
-    }
-
+    /**
+     * Returns the AST of a grammar. TODO: complete the AST flow
+     * @return
+     */
     AST ast() {
         new AST(ruleMap)
     }
 
-    /*
-        private boolean isInformational(Expression e) {
-        Set<Variable> visited = [] as Set<Variable>
-
-        Expression.Visitor<Boolean> informationalVisitor = new Expression.Visitor<Boolean>() {
-            @Override Boolean visit(Then then) { then.children.any {it.accept(this)} }
-            @Override Boolean visit(Or or) { true }
-            @Override Boolean visit(Optional optional) { true }
-            @Override Boolean visit(Repeated repeated) { true }
-            @Override Boolean visit(NonTerminal nonTerminal) {
-                if (nonTerminal.variable in visited) {
-                    true
-                } else {
-                    visited += nonTerminal.variable
-                    ruleMap[nonTerminal.variable].any {it.definition.accept(this)}
-                }
-            }
-            @Override Boolean visit(Terminal terminal) { !(terminal.terminal ==~ /([a-zA-Z]+)|([^a-zA-Z0-9]+)/) }
-        }
-
-        e.accept(informationalVisitor)
-    }
-
+    /**
+     *  Calculates nullability for each Variable in the rule system. A nullable variable is a variable that may
+     *  resolve into epsilon. The discovery loop runs while there are changes to the nullability table (in other
+     *  words: the calculation process is a bootstrap).
      */
-    Map<Variable, Boolean> informational() {
-        Map<Variable, Boolean> nullable = [:]
-
-        ArrayList<?  extends Exception> arr = new ArrayList<>()
-        Exception e = null
-        arr.add(e)
-        true
-
-    }
-
     Map<Variable, Boolean> nullable() {
         Map<Variable, Boolean> nullable = [:]
 
@@ -287,6 +260,8 @@ class EBNF {
 
         def copyOfNullable
 
+        //Every iteration updates the nullability map. Updates are never from false to true. Once discovered as
+        //nullable, a variable is nullable.
         do {
             copyOfNullable = nullable.clone()
 
@@ -302,6 +277,13 @@ class EBNF {
         nullable
     }
 
+    /**
+     * Calculates the first closure for each variable in the rule set. The first closure of a variable is made of all
+     * the terminals that might appear as the first terminal in what the variable resolves to. In other words - the
+     * potential first terminals of the variable. The discovery loop runs while there are changes to the first-closure
+     * map. The map keeps accumulating additional values due to the recursive nature of the rules (in other
+     * words: the calculation process is a bootstrap).
+     */
     Map<Variable, Set<Terminal>> first() {
         Map<Variable, Set<Terminal>> first = [:]
 
@@ -324,17 +306,31 @@ class EBNF {
         first
     }
 
+    /**
+     * Calculates the follow closure for each variable in the rule set. The floow closure of a variable is made of all
+     * the terminals that might appear after the resolution of the variable. In other words - the potential next
+     * terminals of the variable. Calculating the follow closure uses the nullable table and the first-closure of the
+     * variables. If nullable and first are provided, the method will use them. Otherwise it will calculate them.
+     * This option is meant for efficiency. The discovery loop runs while there are changes to the follow-closure
+     * map. The map keeps accumulating additional values due to the recursive nature of the rules (in other
+     * words: the calculation process is a bootstrap).
+     */
     Map<Variable, Set<Terminal>> follow(Map<Variable, Set<Terminal>> first = null, Map<Variable,
             Boolean> nullable = null)  {
+        //IF first and/or nullable are not provided as parameters, calculate them:
         if (first == null) {
             first = this.first()
         }
 
-        FirstVisitor firstVisitor = new FirstVisitor(first)
-
         if (nullable == null) {
             nullable = this.nullable()
         }
+
+        //Based on the nullable and first table, visitors will be able to answer specific questions.
+        //We will need a visitor and not merely the nullable and first maps, because the maps tell us the nullability
+        //or the first of a variable, and we will need to know if a sub-expression is nullable, or what is the
+        //first of a sub-expression. Not only of variables.
+        FirstVisitor firstVisitor = new FirstVisitor(first)
 
         NullableVisitor nullableVisitor = new NullableVisitor(nullable)
 
@@ -347,16 +343,23 @@ class EBNF {
 
             rules.forEach {rule ->
                 //Rule #1: S -> $
+                //What follows the root, is $. End of input. So add $ to the follow of the root.
                 if (rule.nonTerminal == root) {
                     follow.merge(root, [ṩ].toSet(),
                             (Set<Terminal> oldFirst, Set<Terminal> newFirst) -> oldFirst + newFirst)
                 }
 
                 //Rule #2: A -> αBβ => FOLLOW(B) += FIRST(β)
+                //Regardless of A, if B is followed by some β in any rule, then the follow of B should include also
+                //the first of β
+
+                //For the follow calculation we will need a visitor that could find all the variables to which an
+                //expression resolves (expression x resolves to variable y if and only if one of the resolution
+                //options of x is x -> y. Without any prefix or suffix). It will be used later in the code.
                 Visitor<Set<Variable>> nonTerminalResolver = new Visitor<Set<Variable>>() {
                     @Override
                     Set<Variable> visit(Then then) {
-                        //Collect all the children that are NOT nullable
+                        //Collect all the children expressions that are NOT nullable
                         List<Expression> nonNullables = then.children.findAll{!it.accept(nullableVisitor)}
 
                         switch(nonNullables.size()) {
@@ -371,7 +374,8 @@ class EBNF {
                             case 1:
                                 return nonNullables[0].accept(this)
 
-                            //More than one non nullable child means that this Then cannot be resolved into one variable
+                            //More than one non nullable child means that this Then expression cannot be resolved into
+                            //a variable, because there are more than one adjacent elements in the resolution
                             default:
                                 return []
                         }
@@ -385,15 +389,23 @@ class EBNF {
                     @Override Set<Variable> visit(Terminal terminal) { [] }
                 }
 
+                //Another visitor we will need - a visitor that detects Rule #2 situations, i.e.: Bβ, and
+                //adds the first of β to the follow of B.
                 Visitor<Void> sequenceVisitor = new Visitor<Void>() {
                     @Override
                     Void visit(Then then) {
+                        //For each child in the Then expression
                         then.children.init().eachWithIndex{ Expression e, int i -> {
+                            //Find the set of variables to which the child resolves
                             Set<Variable> childNonTerminalResolution = e.accept(nonTerminalResolver)
 
+                            //For each variable to which this child resolves, make a Then expression with all
+                            //the children that come after it
                             childNonTerminalResolution.forEach{Variable v ->
                                 Expression restOfSequence = new Then(then.children.drop(i+1))
 
+                                //Calculate the first of the rest of the sequence, and add to the follow of the
+                                //current child
                                 follow.merge(v, restOfSequence.accept(firstVisitor) - [ε],
                                         (Set<Terminal> oldFirst, Set<Terminal> newFirst) ->
                                                 oldFirst + newFirst)
@@ -410,6 +422,8 @@ class EBNF {
 
                     @Override
                     Void visit(Repeated repeated) {
+                        //Repeated is zer or more times. So the follow of {A} is the follow of A by itself, plus
+                        //the follow of A in AA...
                         repeated.child.accept(this)
                         new Then(repeated.child, repeated.child).accept(this)
                         null
@@ -419,18 +433,27 @@ class EBNF {
                     //that returns null
                 }
 
+                //Apply the sequence visitor on the rule. It will detect and update follow closures.
                 rule.definition.accept(sequenceVisitor)
 
                 //Rule #3: A -> αB || A -> αBβ && NULLABLE(β) => FOLLOW(B) += FOLLOW(A)
+                //In this situation, if a variable ends a rule or what comes after it is nullable, it means that its
+                //follow should contain the follow of the variable of that rule.
+
+                //This helping visitor finds all the variables at the end of an expression
                 Visitor<Set<Variable>> nonTerminalsAtEndVisitor = new Visitor<Set<Variable>>() {
                     @Override
                     Set<Variable> visit(Then then) {
+                        //In a Then expression, find all the variables to which the *last* child resolves
                         Set<Variable> nonTerminalsAtEnd = then.children.last().accept(this)
 
+                        //If the last child is nullable
                         if (then.children.last().accept(nullableVisitor)) {
                             if (then.children.size() > 2) {
+                                //Create a new Then expression with all but the last child, and recurse over it
                                 nonTerminalsAtEnd += new Then(then.children.take(then.children.size()-1)).accept(this)
                             } else {
+                                //One child. Recurse over it.
                                 nonTerminalsAtEnd += then.children[0].accept(this)
                             }
                         }
@@ -446,8 +469,11 @@ class EBNF {
                     @Override Set<Variable> visit(Terminal terminal) { [] }
                 }
 
+                //Use the visitor to find the variables the current rule ends with
                 Set<Variable> nonTerminalsAtEnd = rule.definition.accept(nonTerminalsAtEndVisitor)
 
+                //For each of these non terminals, add to their follow the current rule's variable's follow,
+                //as Rule #3 suggests
                 nonTerminalsAtEnd.forEach { endingNonTerminal ->
                     follow.merge(endingNonTerminal, follow.get(rule.nonTerminal, new HashSet<Terminal>()) - [ε],
                             (Set<Terminal> oldFirst, Set<Terminal> newFirst) -> oldFirst + newFirst)
@@ -459,6 +485,7 @@ class EBNF {
         follow
     }
 
+    //First Visitor. Used in first() calculations.
     class FirstVisitor extends Visitor<Set<Terminal>> {
         private final Map<Variable, Set<Terminal>> first
 
@@ -470,6 +497,9 @@ class EBNF {
         Set<Terminal> visit(Then then) {
             Set<Terminal> firstOfThen = []
 
+            //find() stops iterating through the children when the iteration returns true. So the following code
+            //adds the first() of the current child to the set, and if the first contains epsilon, it continues
+            //to the next child.
             then.children.find { Expression e ->
                 Set<Terminal> firstOfChild = e.accept(this)
                 firstOfThen += firstOfChild
