@@ -2,7 +2,6 @@
 package il.ac.openu.flue.model.ebnf
 
 import groovy.transform.stc.ClosureParams
-import groovy.transform.stc.FromString
 import groovy.transform.stc.SimpleType
 import il.ac.openu.flue.model.ebnf.element.RawRule
 import il.ac.openu.flue.model.ebnf.element.Variable
