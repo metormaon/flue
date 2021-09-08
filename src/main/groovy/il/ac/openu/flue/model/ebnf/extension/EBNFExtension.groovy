@@ -1,62 +1,113 @@
 package il.ac.openu.flue.model.ebnf.extension
 
-import il.ac.openu.flue.model.ebnf.element.*
+import il.ac.openu.flue.model.rule.Expression
+import il.ac.openu.flue.model.rule.Optional
+import il.ac.openu.flue.model.rule.Or
+import il.ac.openu.flue.model.rule.Repeated
 import il.ac.openu.flue.model.rule.Terminal
+import il.ac.openu.flue.model.rule.Then
 
 /**
  * @author Noam Rotem
  */
 class EBNFExtension {
-    static AndList and(Closure<?> self, RuleElement e) {
-        new AndList(new OneOrMore(self), e)
+    static Then and(Closure<Expression> self, Expression e) {
+        new Then(new Repeated(self()), e)
     }
 
-    static AndList and(Closure<?> self, Closure<?> c) {
-        new AndList(new OneOrMore(self), new OneOrMore(c))
+    static Then and(Closure<Expression> self, Closure<Expression> c) {
+        new Then(new Repeated(self()), new Repeated(c()))
     }
 
-    static AndList and(Closure<?> self, List<?> l) {
-        new AndList(new OneOrMore(self), new ZeroOrOne(l))
+    static Then and(Closure<Expression> self, List<Expression> l) {
+        new Then(new Repeated(self()), new Optional(l[0]))
     }
 
-    static AndList and(Closure<?> self, String s) {
-        new AndList(new OneOrMore(self), new Token(s))
+    static Then and(Closure<Expression> self, String s) {
+        new Then(new Repeated(self()), new Terminal(s))
     }
 
-    static AndList and(String self, RuleElement r) {
-        new AndList(new Token(self), r)
+    static Then and(String self, Expression r) {
+        new Then(new Terminal(self), r)
     }
 
-    static AndList and(String self, List<?> l) {
-        new AndList(new Token(self), new ZeroOrOne(l))
+    static Then and(String self, List<Expression> l) {
+        new Then(new Terminal(self), new Optional(l[0]))
     }
 
-    static AndList and(String self, Closure<?> c) {
-        new AndList(new Token(self), new OneOrMore(c))
+    static Then and(String self, Closure<Expression> c) {
+        new Then(new Terminal(self), new Repeated(c()))
     }
 
-    static AndList and(String self, String s) {
-        new AndList(new Token(self), new Token(s))
+    static Then and(String self, String s) {
+        new Then(new Terminal(self), new Terminal(s))
     }
 
-    static AndList and(List<?> self, RuleElement e) {
-        new AndList(new ZeroOrOne(self), e)
+    static Then and(List<Expression> self, Expression e) {
+        new Then(new Optional(self[0]), e)
     }
 
-    static AndList and(List<?> self, Closure<?> c) {
-        new AndList(new ZeroOrOne(self), new OneOrMore(c))
+    static Then and(List<Expression> self, Closure<Expression> c) {
+        new Then(new Optional(self[0]), new Repeated(c()))
     }
 
-    static AndList and(List<?> self, List<?> l) {
-        new AndList(new ZeroOrOne(self), new ZeroOrOne(l))
+    static Then and(List<Expression> self, List<Expression> l) {
+        new Then(new Optional(self[0]), new Optional(l[0]))
     }
 
-    static AndList and(List<?> self, String s) {
-        new AndList(new ZeroOrOne(self), new Token(s))
+    static Then and(List<Expression> self, String s) {
+        new Then(new Optional(self[0]), new Terminal(s))
     }
 
+    static Or or(Closure<Expression> self, Expression e) {
+        new Or(new Repeated(self()), e)
+    }
+
+    static Or or(Closure<Expression> self, Closure<Expression> c) {
+        new Or(new Repeated(self()), new Repeated(c()))
+    }
+
+    static Or or(Closure<Expression> self, List<Expression> l) {
+        new Or(new Repeated(self()), new Optional(l[0]))
+    }
+
+    static Or or(Closure<Expression> self, String s) {
+        new Or(new Repeated(self()), new Terminal(s))
+    }
+
+    static Or or(String self, Expression r) {
+        new Or(new Terminal(self), r)
+    }
+
+    static Or or(String self, List<Expression> l) {
+        new Or(new Terminal(self), new Optional(l[0]))
+    }
+
+    static Or or(String self, Closure<Expression> c) {
+        new Or(new Terminal(self), new Repeated(c()))
+    }
+
+    static Or or(String self, String s) {
+        new Or(new Terminal(self), new Terminal(s))
+    }
+
+    static Or or(List<Expression> self, Expression e) {
+        new Or(new Optional(self[0]), e)
+    }
+
+    static Or or(List<Expression> self, Closure<Expression> c) {
+        new Or(new Optional(self[0]), new Repeated(c()))
+    }
+
+    static Or or(List<Expression> self, List<Expression> l) {
+        new Or(new Optional(self[0]), new Optional(l[0]))
+    }
+
+    static Or or(List<Expression> self, String s) {
+        new Or(new Optional(self[0]), new Terminal(s))
+    }
     static Object asType(String s, Class c) {
-        if (c == Terminal) {
+        if (c == Expression) {
             return new Terminal(s)
         }
 

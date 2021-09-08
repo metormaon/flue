@@ -1,18 +1,26 @@
 package il.ac.openu.flue.model.rule
 
-import il.ac.openu.flue.model.ebnf.element.Variable
-
 /**
  * @author Noam Rotem
  */
 class Rule {
-    final Variable nonTerminal;
-    final Expression definition;
+    NonTerminal nonTerminal;
+    Expression definition;
 
-    Rule(Variable nonTerminal, Expression definition) {
+    Rule(NonTerminal nonTerminal, Expression definition) {
         this.nonTerminal = nonTerminal
         this.definition = definition
     }
+
+    Rule or(Expression e) { definition |= e; this }
+    Rule or(Closure<?> c) { definition |= c; this }
+    Rule or(List<?> l) { definition |= l; this }
+    Rule or(String s) { definition |= s; this }
+
+    Rule and(Expression e) { definition &= e; this }
+    Rule and(Closure<?> c) { definition &= c; this }
+    Rule and(List<?> l) { definition &= l; this }
+    Rule and(String s) { definition &= s; this }
 
     @Override
     String toString() {

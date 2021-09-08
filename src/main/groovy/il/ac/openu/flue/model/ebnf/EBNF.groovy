@@ -3,8 +3,6 @@ package il.ac.openu.flue.model.ebnf
 
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
-import il.ac.openu.flue.model.ebnf.element.RawRule
-import il.ac.openu.flue.model.ebnf.element.Variable
 import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
 import il.ac.openu.flue.model.rule.Expression
 import il.ac.openu.flue.model.rule.NonTerminal
@@ -40,14 +38,14 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * }
  * </pre>
  *
- * A grammar rule is defined as: <i>variable >> expression</i>.<p>
+ * A grammar rule is defined as: <i>non-terminal >> expression</i>.<p>
  *
- * <i>variable</i> is an enum member that extends Variable:
+ * <i>non-terminal</i> is an enum member that extends NonTerminal:
  * <pre>
- * enum V implements Variable { A, B, C, D, E, F, G }
+ * enum V implements NonTerminal { A, B, C, D, E, F, G }
  * </pre>
  * <i>expression</i> is made of the following elements and operators:<p>
- * <li>Variable (e.g. A)</li>
+ * <li>NonTerminal (e.g. A)</li>
  * <li>Terminal (e.g. "." or "class")</li>
  * <li><i>and-then</i> operator: &amp; (e.g. A &amp; ".")</li>
  * <li><i>or</i> operator: | (e.g. A | B)</li>
@@ -69,8 +67,8 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  *
  * <li>The curly brackets wrapping the rules are a closure, passed to ebnf() as a parameter. </li>
  *
- * <li>Each rule is a statement that creates a {@link RawRule} instance. The rule creation moment is when the >>
- * operator is processed: one of {@link Variable}'s rightShift methods is called on the Variable to the left of
+ * <li>Each rule is a statement that creates a {@link Rule} instance. The rule creation moment is when the >>
+ * operator is processed: one of {@link NonTerminal}'s rightShift methods is called on the NonTerminal to the left of
  * the >> operator, with part of the right side statement as a parameter.</li>
  *
  * <li>Potentially only part of the right statement is already parsed at that moment, because the precedence of
@@ -90,13 +88,13 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * for example, Groovy tricks should be used, and the data structure that supports it cannot be immutable and simple.
  * So, once the grammar is fully processed, RawRules are converted into final-form {@link Rule}s.<p>
  * <p>
- * To use EBNF in your file, it is recommended you add static imports to ease the use of your Variables and of
+ * To use EBNF in your file, it is recommended you add static imports to ease the use of your non-terminals and of
  * EBNF itself:<p><p>
  * import static il.ac.openu.flue.model.ebnf.EBNF.ebnf<p>
  * import static yourPackage.yourClass.V.*<p><p>
  *
- * and you create a Variable enum:<p><p>
- * enum V implements Variable { A, B, C, D, E, F, G }
+ * and you create a NonTerminal enum:<p><p>
+ * enum V implements NonTerminal { A, B, C, D, E, F, G }
  *
  * @author Noam Rotem
  */
@@ -112,13 +110,13 @@ class EBNF {
     private EBNF() {}
 
     //Root rule = start rule
-    Variable root
+    NonTerminal root
 
-    //Construction-time rules
-    private Set<RawRule> rawRules = []
+//////    //Construction-time rules
+//////    private Set<Rule> rawRules = []
 
-    List<Rule> rules
-    Map<Variable, List<Rule>> ruleMap
+    List<Rule> rules = []
+    Map<NonTerminal, List<Rule>> ruleMap
 
     /**
      * Grammar factory. Creates an EBNF instance by parsing the rules in the closure. Finds the root by itself.
@@ -132,7 +130,7 @@ class EBNF {
     /**
      * Grammar factory. Creates an EBNF instance by parsing the rules in the closure.
      */
-    static EBNF ebnf(Variable v, Closure<RawRule> c) {
+    static EBNF ebnf(NonTerminal v, Closure<Rule> c) {
         EBNF ebnf = process c
         ebnf.root = v
         ebnf
@@ -141,24 +139,24 @@ class EBNF {
     /**
      * To be used by the >> operator to add a parsed rule
      */
-    static RawRule add(RawRule r) {
+    static Rule add(Rule r) {
         if (!context.get()) {
             throw new IllegalStateException("Rules must be specified in the context of EBNF grammar. " +
                     "Wrap with ebnf { }.")
         }
 
-        if (context.get().rawRules.empty) {
-            context.get().root = r.variable
+        if (context.get().rules.empty) {
+            context.get().root = r.nonTerminal
         }
 
-        context.get().rawRules += r
+        context.get().rules += r
         r
     }
 
     /**
      *  Creates an EBNF instance from a closure of rules.
      */
-    private static EBNF process(Closure<RawRule> c) {
+    private static EBNF process(Closure<Rule> c) {
         //A new EBNF instance is set to the ThreadLocal
         context.set(new EBNF())
 
@@ -185,10 +183,10 @@ class EBNF {
      * composite into a manageable composite.
      */
     private void transformRules() {
-        //Convert expression composites into a simple, useful composite
-        rules = rawRules.collect { new Rule(it.variable, it.expression()) }
+////////        //Convert expression composites into a simple, useful composite
+////////        rules = rawRules.collect { new Rule(it.variable, it.expression()) }
 
-        //For algorithmic convenience, create also a map from variable to all of its resolving rules
+        //For algorithmic convenience, create also a map from non-terminal to all of its resolving rules
         ruleMap = rules.groupBy {
             it.nonTerminal
         }
@@ -197,36 +195,36 @@ class EBNF {
     /**
      * A method for automatically finding the root of a grammar, i.e. - it's entry rule
      */
-    private Variable findRoot() {
-        List<Variable> definedVariables = []
-        Set<Variable> referredVariables = []
+    private NonTerminal findRoot() {
+        List<NonTerminal> definedNonTerminals = []
+        Set<NonTerminal> referredNonTerminals = []
 
         //A visitor that goes through expressions and detects referred-to non-terminals
-        Visitor<Set<Variable>> referredVariableVisitor = new Visitor<Set<Variable>>() {
-            @Override Set<Variable> visit(Then then) { then.children.inject([].toSet())
+        Visitor<Set<NonTerminal>> referredNonTerminalVisitor = new Visitor<Set<NonTerminal>>() {
+            @Override Set<NonTerminal> visit(Then then) { then.children.inject([].toSet())
                     { s, e -> s + e.accept(this)} }
-            @Override Set<Variable> visit(Or or) { or.children.inject([].toSet())
+            @Override Set<NonTerminal> visit(Or or) { or.children.inject([].toSet())
                     { s, e -> s + e.accept(this)} }
-            @Override Set<Variable> visit(Optional optional) { optional.child.accept(this) }
-            @Override Set<Variable> visit(Repeated repeated) { repeated.child.accept(this) }
-            @Override Set<Variable> visit(NonTerminal nonTerminal) { [nonTerminal.variable].toSet() }
-            @Override Set<Variable> visit(Terminal terminal) { [].toSet() as Set<Variable> }
+            @Override Set<NonTerminal> visit(Optional optional) { optional.child.accept(this) }
+            @Override Set<NonTerminal> visit(Repeated repeated) { repeated.child.accept(this) }
+            @Override Set<NonTerminal> visit(NonTerminal nonTerminal) { [nonTerminal] }
+            @Override Set<NonTerminal> visit(Terminal terminal) { [].toSet() as Set<NonTerminal> }
         }
 
         //Visit all rules Find all defined non-terminals and all referred to non-terminals
         rules.forEach(r -> {
-            definedVariables += r.nonTerminal
-            referredVariables += r.definition.accept(referredVariableVisitor)
+            definedNonTerminals += r.nonTerminal
+            referredNonTerminals += r.definition.accept(referredNonTerminalVisitor)
         })
 
         //Calculate root candidates - defined but not referred-to non-terminals
-        List<Variable> rootVariables = definedVariables - referredVariables
+        List<NonTerminal> rootNonTerminals = definedNonTerminals - referredNonTerminals
 
-        if (rootVariables.isEmpty()) {
+        if (rootNonTerminals.isEmpty()) {
             throw new IllegalArgumentException("No entry rule was detected")
         } else {
             //Returns an arbitrary root candidate
-            rootVariables[0]
+            rootNonTerminals[0]
         }
     }
 
@@ -248,23 +246,23 @@ class EBNF {
     }
 
     /**
-     *  Calculates nullability for each Variable in the rule system. A nullable variable is a variable that may
-     *  resolve into epsilon. The discovery loop runs while there are changes to the nullability table (in other
+     *  Calculates nullability for each NonTerminal in the rule system. A nullable non-terminal is a non-terminal that
+     *  may resolve into epsilon. The discovery loop runs while there are changes to the nullability table (in other
      *  words: the calculation process is a bootstrap).
      */
-    Map<Variable, Boolean> nullable() {
-        Map<Variable, Boolean> nullable = [:]
+    Map<NonTerminal, Boolean> nullable() {
+        Map<NonTerminal, Boolean> nullable = [:]
 
         NullableVisitor nullableVisitor = new NullableVisitor(nullable)
 
         def copyOfNullable
 
         //Every iteration updates the nullability map. Updates are never from false to true. Once discovered as
-        //nullable, a variable is nullable.
+        //nullable, a non-terminal is nullable.
         do {
             copyOfNullable = nullable.clone()
 
-            ruleMap.collect { Variable v, List<Rule> rs ->
+            ruleMap.collect { NonTerminal v, List<Rule> rs ->
                 rs.forEach { Rule r ->
                     nullable.merge(v, r.definition.accept(nullableVisitor),
                             (Boolean oldFirst, Boolean newFirst) -> oldFirst || newFirst
@@ -277,14 +275,14 @@ class EBNF {
     }
 
     /**
-     * Calculates the first closure for each variable in the rule set. The first closure of a variable is made of all
-     * the terminals that might appear as the first terminal in what the variable resolves to. In other words - the
-     * potential first terminals of the variable. The discovery loop runs while there are changes to the first-closure
-     * map. The map keeps accumulating additional values due to the recursive nature of the rules (in other
-     * words: the calculation process is a bootstrap).
+     * Calculates the first closure for each non-terminal in the rule set. The first closure of a non-terminal is made
+     * of all the terminals that might appear as the first terminal in what the non-terminal resolves to. In other
+     * words - the potential first terminals of the non-terminal. The discovery loop runs while there are changes to
+     * the first-closure map. The map keeps accumulating additional values due to the recursive nature of the rules
+     * (in other words: the calculation process is a bootstrap).
      */
-    Map<Variable, Set<Terminal>> first() {
-        Map<Variable, Set<Terminal>> first = [:]
+    Map<NonTerminal, Set<Terminal>> first() {
+        Map<NonTerminal, Set<Terminal>> first = [:]
 
         FirstVisitor firstVisitor = new FirstVisitor(first)
 
@@ -293,7 +291,7 @@ class EBNF {
         do {
             copyOfFirst = first.clone()
 
-            ruleMap.collect { Variable v, List<Rule> rs ->
+            ruleMap.collect { NonTerminal v, List<Rule> rs ->
                 rs.forEach { Rule r ->
                     first.merge(v, r.definition.accept(firstVisitor),
                             (Set<Terminal> oldFirst, Set<Terminal> newFirst) -> oldFirst + newFirst
@@ -306,15 +304,15 @@ class EBNF {
     }
 
     /**
-     * Calculates the follow closure for each variable in the rule set. The floow closure of a variable is made of all
-     * the terminals that might appear after the resolution of the variable. In other words - the potential next
-     * terminals of the variable. Calculating the follow closure uses the nullable table and the first-closure of the
-     * variables. If nullable and first are provided, the method will use them. Otherwise it will calculate them.
+     * Calculates the follow closure for each non-terminal in the rule set. The follow closure of a non-terminal is
+     * made of all the terminals that might appear after the resolution of the non-terminal. In other words - the
+     * potential next terminals of the non-terminal. Calculating the follow closure uses the nullable table and the
+     * first-closure of the non-terminals. If nullable and first are provided, the method will use them. Otherwise it will calculate them.
      * This option is meant for efficiency. The discovery loop runs while there are changes to the follow-closure
      * map. The map keeps accumulating additional values due to the recursive nature of the rules (in other
      * words: the calculation process is a bootstrap).
      */
-    Map<Variable, Set<Terminal>> follow(Map<Variable, Set<Terminal>> first = null, Map<Variable,
+    Map<NonTerminal, Set<Terminal>> follow(Map<NonTerminal, Set<Terminal>> first = null, Map<NonTerminal,
             Boolean> nullable = null)  {
         //IF first and/or nullable are not provided as parameters, calculate them:
         if (first == null) {
@@ -327,13 +325,13 @@ class EBNF {
 
         //Based on the nullable and first table, visitors will be able to answer specific questions.
         //We will need a visitor and not merely the nullable and first maps, because the maps tell us the nullability
-        //or the first of a variable, and we will need to know if a sub-expression is nullable, or what is the
-        //first of a sub-expression. Not only of variables.
+        //or the first of a non-terminal, and we will need to know if a sub-expression is nullable, or what is the
+        //first of a sub-expression. Not only of non-terminals.
         FirstVisitor firstVisitor = new FirstVisitor(first)
 
         NullableVisitor nullableVisitor = new NullableVisitor(nullable)
 
-        Map<Variable, Set<Terminal>> follow = [:]
+        Map<NonTerminal, Set<Terminal>> follow = [:]
 
         def copyOfFollow
 
@@ -352,17 +350,17 @@ class EBNF {
                 //Regardless of A, if B is followed by some β in any rule, then the follow of B should include also
                 //the first of β
 
-                //For the follow calculation we will need a visitor that could find all the variables to which an
-                //expression resolves (expression x resolves to variable y if and only if one of the resolution
+                //For the follow calculation we will need a visitor that could find all the non-terminals to which an
+                //expression resolves (expression x resolves to non-terminal y if and only if one of the resolution
                 //options of x is x -> y. Without any prefix or suffix). It will be used later in the code.
-                Visitor<Set<Variable>> nonTerminalResolver = new Visitor<Set<Variable>>() {
+                Visitor<Set<NonTerminal>> nonTerminalResolver = new Visitor<Set<NonTerminal>>() {
                     @Override
-                    Set<Variable> visit(Then then) {
+                    Set<NonTerminal> visit(Then then) {
                         //Collect all the children expressions that are NOT nullable
                         List<Expression> nonNullables = then.children.findAll{!it.accept(nullableVisitor)}
 
                         switch(nonNullables.size()) {
-                            //If all the children are nullable, then each one may be resolvable to a variable, while
+                            //If all the children are nullable, then each one may be resolvable to a non-terminal, while
                             //all the others are null. So try to resolve every child.
                             case 0:
                                 return then.children.inject([].toSet(), { set, e ->
@@ -374,18 +372,18 @@ class EBNF {
                                 return nonNullables[0].accept(this)
 
                             //More than one non nullable child means that this Then expression cannot be resolved into
-                            //a variable, because there are more than one adjacent elements in the resolution
+                            //a non-terminal, because there are more than one adjacent elements in the resolution
                             default:
                                 return []
                         }
                     }
 
-                    @Override Set<Variable> visit(Or or) { or.children.inject([].toSet())
+                    @Override Set<NonTerminal> visit(Or or) { or.children.inject([].toSet())
                             {a, b -> a + b.accept(this)} }
-                    @Override Set<Variable> visit(Optional optional) { optional.child.accept(this) }
-                    @Override Set<Variable> visit(Repeated repeated) { repeated.child.accept(this) }
-                    @Override Set<Variable> visit(NonTerminal nonTerminal) { [nonTerminal.variable] }
-                    @Override Set<Variable> visit(Terminal terminal) { [] }
+                    @Override Set<NonTerminal> visit(Optional optional) { optional.child.accept(this) }
+                    @Override Set<NonTerminal> visit(Repeated repeated) { repeated.child.accept(this) }
+                    @Override Set<NonTerminal> visit(NonTerminal nonTerminal) { [nonTerminal] }
+                    @Override Set<NonTerminal> visit(Terminal terminal) { [] }
                 }
 
                 //Another visitor we will need - a visitor that detects Rule #2 situations, i.e.: Bβ, and
@@ -395,12 +393,12 @@ class EBNF {
                     Void visit(Then then) {
                         //For each child in the Then expression
                         then.children.init().eachWithIndex{ Expression e, int i -> {
-                            //Find the set of variables to which the child resolves
-                            Set<Variable> childNonTerminalResolution = e.accept(nonTerminalResolver)
+                            //Find the set of non-terminals to which the child resolves
+                            Set<NonTerminal> childNonTerminalResolution = e.accept(nonTerminalResolver)
 
-                            //For each variable to which this child resolves, make a Then expression with all
+                            //For each non-terminal to which this child resolves, make a Then expression with all
                             //the children that come after it
-                            childNonTerminalResolution.forEach{Variable v ->
+                            childNonTerminalResolution.forEach{NonTerminal v ->
                                 Expression restOfSequence = new Then(then.children.drop(i+1))
 
                                 //Calculate the first of the rest of the sequence, and add to the follow of the
@@ -436,15 +434,15 @@ class EBNF {
                 rule.definition.accept(sequenceVisitor)
 
                 //Rule #3: A -> αB || A -> αBβ && NULLABLE(β) => FOLLOW(B) += FOLLOW(A)
-                //In this situation, if a variable ends a rule or what comes after it is nullable, it means that its
-                //follow should contain the follow of the variable of that rule.
+                //In this situation, if a non-terminal ends a rule or what comes after it is nullable, it means that its
+                //follow should contain the follow of the non-terminal of that rule.
 
-                //This helping visitor finds all the variables at the end of an expression
-                Visitor<Set<Variable>> nonTerminalsAtEndVisitor = new Visitor<Set<Variable>>() {
+                //This helping visitor finds all the non-terminals at the end of an expression
+                Visitor<Set<NonTerminal>> nonTerminalsAtEndVisitor = new Visitor<Set<NonTerminal>>() {
                     @Override
-                    Set<Variable> visit(Then then) {
-                        //In a Then expression, find all the variables to which the *last* child resolves
-                        Set<Variable> nonTerminalsAtEnd = then.children.last().accept(this)
+                    Set<NonTerminal> visit(Then then) {
+                        //In a Then expression, find all the non-terminals to which the *last* child resolves
+                        Set<NonTerminal> nonTerminalsAtEnd = then.children.last().accept(this)
 
                         //If the last child is nullable
                         if (then.children.last().accept(nullableVisitor)) {
@@ -460,18 +458,18 @@ class EBNF {
                         nonTerminalsAtEnd
                     }
 
-                    @Override Set<Variable> visit(Or or) { or.children.inject([].toSet())
+                    @Override Set<NonTerminal> visit(Or or) { or.children.inject([].toSet())
                             {a, b -> a + b.accept(this)} }
-                    @Override Set<Variable> visit(Optional optional) { optional.child.accept(this) }
-                    @Override Set<Variable> visit(Repeated repeated) { repeated.child.accept(this) }
-                    @Override Set<Variable> visit(NonTerminal nonTerminal) { [nonTerminal.variable] }
-                    @Override Set<Variable> visit(Terminal terminal) { [] }
+                    @Override Set<NonTerminal> visit(Optional optional) { optional.child.accept(this) }
+                    @Override Set<NonTerminal> visit(Repeated repeated) { repeated.child.accept(this) }
+                    @Override Set<NonTerminal> visit(NonTerminal nonTerminal) { [nonTerminal] }
+                    @Override Set<NonTerminal> visit(Terminal terminal) { [] }
                 }
 
-                //Use the visitor to find the variables the current rule ends with
-                Set<Variable> nonTerminalsAtEnd = rule.definition.accept(nonTerminalsAtEndVisitor)
+                //Use the visitor to find the non-terminals the current rule ends with
+                Set<NonTerminal> nonTerminalsAtEnd = rule.definition.accept(nonTerminalsAtEndVisitor)
 
-                //For each of these non terminals, add to their follow the current rule's variable's follow,
+                //For each of these non terminals, add to their follow the current rule's non-terminal's follow,
                 //as Rule #3 suggests
                 nonTerminalsAtEnd.forEach { endingNonTerminal ->
                     follow.merge(endingNonTerminal, follow.get(rule.nonTerminal, new HashSet<Terminal>()) - [ε],
@@ -486,9 +484,9 @@ class EBNF {
 
     //First Visitor. Used in first() calculations.
     class FirstVisitor extends Visitor<Set<Terminal>> {
-        private final Map<Variable, Set<Terminal>> first
+        private final Map<NonTerminal, Set<Terminal>> first
 
-        FirstVisitor(Map<Variable, Set<Terminal>> first) {
+        FirstVisitor(Map<NonTerminal, Set<Terminal>> first) {
             this.first = first
         }
 
@@ -527,7 +525,7 @@ class EBNF {
 
         @Override
         Set<Terminal> visit(NonTerminal nonTerminal) {
-            first[nonTerminal.variable] ?: []
+            first[nonTerminal] ?: []
         }
 
         @Override
@@ -537,9 +535,9 @@ class EBNF {
     }
 
     class NullableVisitor extends Visitor<Boolean> {
-        private final Map<Variable, Boolean> nullable
+        private final Map<NonTerminal, Boolean> nullable
 
-        NullableVisitor(Map<Variable, Boolean> nullable) {
+        NullableVisitor(Map<NonTerminal, Boolean> nullable) {
             this.nullable = nullable
         }
 
@@ -567,7 +565,7 @@ class EBNF {
 
         @Override
         Boolean visit(NonTerminal nonTerminal) {
-            nullable[nonTerminal.variable] ?: false
+            nullable[nonTerminal] ?: false
         }
 
         @Override

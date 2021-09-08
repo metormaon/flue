@@ -1,7 +1,8 @@
 package il.ac.openu.flue
 
 import il.ac.openu.flue.model.ebnf.EBNF
-import il.ac.openu.flue.model.ebnf.element.Variable
+import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
+import il.ac.openu.flue.model.rule.NonTerminal
 
 import static il.ac.openu.flue.JavaEbnf.V.*
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
@@ -10,7 +11,7 @@ import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
  * @author Noam Rotem
  */
 class JavaEbnf {
-    static enum V implements Variable {Identifier, IdentifierChars, JavaLetter, JavaLetterOrDigit, TypeIdentifier,
+    static enum V implements NonTerminal {Identifier, IdentifierChars, JavaLetter, JavaLetterOrDigit, TypeIdentifier,
     UnqualifiedMethodIdentifier, Literal, IntegerLiteral, FloatingPointLiteral, BooleanLiteral, CharacterLiteral,
     StringLiteral, NullLiteral, Type, PrimitiveType, ReferenceType, Annotation, NumericType, IntegralType,
     FloatingPointType, ClassOrInterfaceType, TypeVariable, ArrayType, ClassType, InterfaceType, TypeArguments,
@@ -55,661 +56,665 @@ class JavaEbnf {
     ConstantExpression, PrimitiveType1}
 
     static void main(String[] args) {
-        EBNF java = ebnf {
-            Identifier >> IdentifierChars
+        use(EBNFExtension) {
+            EBNF java = ebnf {
+                Identifier >> IdentifierChars
 
-            IdentifierChars >> JavaLetter & { JavaLetterOrDigit }
+                IdentifierChars >> JavaLetter & { JavaLetterOrDigit }
 
-            JavaLetter >> "[A-Za-z]"
+                JavaLetter >> "[A-Za-z]"
 
-            JavaLetterOrDigit >> "[A-Za-z0-9_]"
+                JavaLetterOrDigit >> "[A-Za-z0-9_]"
 
-            TypeIdentifier >> Identifier
+                TypeIdentifier >> Identifier
 
-            UnqualifiedMethodIdentifier >> Identifier
+                UnqualifiedMethodIdentifier >> Identifier
 
-            Literal >> IntegerLiteral
-                    | FloatingPointLiteral
-                    | BooleanLiteral
-                    | CharacterLiteral
-                    | StringLiteral
-                    | NullLiteral
+                Literal >> IntegerLiteral
+                        | FloatingPointLiteral
+                        | BooleanLiteral
+                        | CharacterLiteral
+                        | StringLiteral
+                        | NullLiteral
 
-            Type >> PrimitiveType | ReferenceType
+                Type >> PrimitiveType | ReferenceType
 
-            PrimitiveType >> { Annotation } & NumericType | { Annotation } & "boolean"
+                PrimitiveType >> { Annotation } & NumericType | { Annotation } & "boolean"
 
-            NumericType >> IntegralType | FloatingPointType
+                NumericType >> IntegralType | FloatingPointType
 
-            IntegralType >> "byte" | "short" | "int" | "long" | "char"
+                IntegralType >> "byte" | "short" | "int" | "long" | "char"
 
-            FloatingPointType >> "float" | "double"
+                FloatingPointType >> "float" | "double"
 
-            ReferenceType >> ClassOrInterfaceType | TypeVariable | ArrayType
+                ReferenceType >> ClassOrInterfaceType | TypeVariable | ArrayType
 
-            ClassOrInterfaceType >> ClassType | InterfaceType
+                ClassOrInterfaceType >> ClassType | InterfaceType
 
-            ClassType >> { Annotation } & TypeIdentifier & [TypeArguments]
-                    | PackageName & "." & { Annotation } & TypeIdentifier & [TypeArguments]
-                    | ClassOrInterfaceType & "." & { Annotation } & TypeIdentifier & [TypeArguments]
+                ClassType >> { Annotation } & TypeIdentifier & [TypeArguments]
+                        | PackageName & "." & { Annotation } & TypeIdentifier & [TypeArguments]
+                        | ClassOrInterfaceType & "." & { Annotation } & TypeIdentifier & [TypeArguments]
 
-            InterfaceType >> ClassType
+                InterfaceType >> ClassType
 
-            TypeVariable >> { Annotation } & TypeIdentifier
+                TypeVariable >> { Annotation } & TypeIdentifier
 
-            ArrayType >> PrimitiveType & Dims
-                    | ClassOrInterfaceType & Dims
-                    | TypeVariable & Dims
+                ArrayType >> PrimitiveType & Dims
+                        | ClassOrInterfaceType & Dims
+                        | TypeVariable & Dims
 
-            Dims >> { Annotation } & "[" & "]" & { { Annotation } & "[" & "]" }
+                Dims >> { Annotation } & "[" & "]" & { { Annotation } & "[" & "]" }
 
-            TypeParameter >> { TypeParameterModifier } & TypeIdentifier & [TypeBound]
+                TypeParameter >> { TypeParameterModifier } & TypeIdentifier & [TypeBound]
 
-            TypeParameterModifier >> Annotation
+                TypeParameterModifier >> Annotation
 
-            TypeBound >> "extends" & TypeVariable | "extends" & ClassOrInterfaceType & { AdditionalBound }
+                TypeBound >> "extends" & TypeVariable | "extends" & ClassOrInterfaceType & { AdditionalBound }
 
-            AdditionalBound >> "&" & InterfaceType
+                AdditionalBound >> "&" & InterfaceType
 
-            TypeArguments >> "<" & TypeArgumentList & ">"
+                TypeArguments >> "<" & TypeArgumentList & ">"
 
-            TypeArgumentList >> TypeArgument & { "," & TypeArgument }
+                TypeArgumentList >> TypeArgument & { "," & TypeArgument }
 
-            TypeArgument >> ReferenceType | Wildcard
+                TypeArgument >> ReferenceType | Wildcard
 
-            Wildcard >> { Annotation } & "?" & [WildcardBounds]
+                Wildcard >> { Annotation } & "?" & [WildcardBounds]
 
-            WildcardBounds >> "extends" & ReferenceType
-                    | "super" & ReferenceType
+                WildcardBounds >> "extends" & ReferenceType
+                        | "super" & ReferenceType
 
-            ModuleName >> Identifier
-                    | ModuleName & "." & Identifier
+                ModuleName >> Identifier
+                        | ModuleName & "." & Identifier
 
-            PackageName >> Identifier
-                    | PackageName & "." & Identifier
+                PackageName >> Identifier
+                        | PackageName & "." & Identifier
 
-            TypeName >> TypeIdentifier
-                    | PackageOrTypeName & "." & TypeIdentifier
+                TypeName >> TypeIdentifier
+                        | PackageOrTypeName & "." & TypeIdentifier
 
-            ExpressionName >> Identifier
-                    | AmbiguousName & "." & Identifier
+                ExpressionName >> Identifier
+                        | AmbiguousName & "." & Identifier
 
-            MethodName >> UnqualifiedMethodIdentifier
+                MethodName >> UnqualifiedMethodIdentifier
 
-            PackageOrTypeName >> Identifier
-                    | PackageOrTypeName & "." & Identifier
+                PackageOrTypeName >> Identifier
+                        | PackageOrTypeName & "." & Identifier
 
-            AmbiguousName >> Identifier
-                    | AmbiguousName & "." & Identifier
+                AmbiguousName >> Identifier
+                        | AmbiguousName & "." & Identifier
 
-            CompilationUnit >> OrdinaryCompilationUnit
-                    | ModularCompilationUnit
+                CompilationUnit >> OrdinaryCompilationUnit
+                        | ModularCompilationUnit
 
-            OrdinaryCompilationUnit >> [PackageDeclaration] & {ImportDeclaration} & {TypeDeclaration}
+                OrdinaryCompilationUnit >> [PackageDeclaration] & { ImportDeclaration } & { TypeDeclaration }
 
-            ModularCompilationUnit >> {ImportDeclaration} & ModuleDeclaration
+                ModularCompilationUnit >> { ImportDeclaration } & ModuleDeclaration
 
-            PackageDeclaration >> {PackageModifier} & "package" & Identifier & {"." & Identifier} & ";"
+                PackageDeclaration >> { PackageModifier } & "package" & Identifier & { "." & Identifier } & ";"
 
-            PackageModifier >> Annotation
+                PackageModifier >> Annotation
 
-            ImportDeclaration >> SingleTypeImportDeclaration
-                    | TypeImportOnDemandDeclaration
-                    | SingleStaticImportDeclaration
-                    | StaticImportOnDemandDeclaration
+                ImportDeclaration >> SingleTypeImportDeclaration
+                        | TypeImportOnDemandDeclaration
+                        | SingleStaticImportDeclaration
+                        | StaticImportOnDemandDeclaration
 
-            SingleTypeImportDeclaration >> "import" & TypeName & ";"
+                SingleTypeImportDeclaration >> "import" & TypeName & ";"
 
-            TypeImportOnDemandDeclaration >> "import" & PackageOrTypeName & "." & "*" & ";"
+                TypeImportOnDemandDeclaration >> "import" & PackageOrTypeName & "." & "*" & ";"
 
-            SingleStaticImportDeclaration >> "import" & "static" & TypeName & "." & Identifier & ";"
+                SingleStaticImportDeclaration >> "import" & "static" & TypeName & "." & Identifier & ";"
 
-            StaticImportOnDemandDeclaration >> "import" & "static" & TypeName & "." & "*" & ";"
+                StaticImportOnDemandDeclaration >> "import" & "static" & TypeName & "." & "*" & ";"
 
-            TypeDeclaration >> ClassDeclaration
-                    | InterfaceDeclaration
-                    | ";"
+                TypeDeclaration >> ClassDeclaration
+                        | InterfaceDeclaration
+                        | ";"
 
-            ModuleDeclaration >> {Annotation} & ["open"] & "module" & Identifier & {"." & Identifier}
-                    & "{" & {ModuleDirective} & "}"
+                ModuleDeclaration >> { Annotation } & ["open"] & "module" & Identifier & { "." & Identifier }
+                        & "{" & { ModuleDirective } & "}"
 
-            ModuleDirective >> "requires" & {RequiresModifier} & ModuleName & ";"
-                    | "exports" & PackageName & ["to" & ModuleName & {"," & ModuleName}] & ";"
-                    | "opens" & PackageName & ["to" & ModuleName & {"," & ModuleName}] & ";"
-                    | "uses" & TypeName & ";"
-                    | "provides" & TypeName & "with" & TypeName & {"," & TypeName} & ";"
+                ModuleDirective >> "requires" & { RequiresModifier } & ModuleName & ";"
+                        | "exports" & PackageName & ["to" & ModuleName & { "," & ModuleName }] & ";"
+                        | "opens" & PackageName & ["to" & ModuleName & { "," & ModuleName }] & ";"
+                        | "uses" & TypeName & ";"
+                        | "provides" & TypeName & "with" & TypeName & { "," & TypeName } & ";"
 
-            RequiresModifier >> "transitive" | "static"
+                RequiresModifier >> "transitive" | "static"
 
-            ClassDeclaration >> NormalClassDeclaration
-                    | EnumDeclaration
+                ClassDeclaration >> NormalClassDeclaration
+                        | EnumDeclaration
 
-            NormalClassDeclaration >> {ClassModifier} & "class" & TypeIdentifier & [TypeParameters] & [Superclass]
-                    & [Superinterfaces] & ClassBody
+                NormalClassDeclaration >> { ClassModifier } & "class" & TypeIdentifier & [TypeParameters] & [Superclass]
+                        & [Superinterfaces] & ClassBody
 
-            ClassModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static"
-                    | "final" | "strictfp"
+                ClassModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static"
+                        | "final" | "strictfp"
 
-            TypeParameters >> "<" & TypeParameterList & ">"
+                TypeParameters >> "<" & TypeParameterList & ">"
 
-            TypeParameterList >> TypeParameter & {"," & TypeParameter}
+                TypeParameterList >> TypeParameter & { "," & TypeParameter }
 
-            Superclass >> "extends" & ClassType
+                Superclass >> "extends" & ClassType
 
-            Superinterfaces >> "implements" & InterfaceTypeList
+                Superinterfaces >> "implements" & InterfaceTypeList
 
-            InterfaceTypeList >> InterfaceType & {"," & InterfaceType}
+                InterfaceTypeList >> InterfaceType & { "," & InterfaceType }
 
-            ClassBody >> "{" & {ClassBodyDeclaration} & "}"
+                ClassBody >> "{" & { ClassBodyDeclaration } & "}"
 
-            ClassBodyDeclaration >> ClassMemberDeclaration
-                    | InstanceInitializer
-                    | StaticInitializer
-                    | ConstructorDeclaration
+                ClassBodyDeclaration >> ClassMemberDeclaration
+                        | InstanceInitializer
+                        | StaticInitializer
+                        | ConstructorDeclaration
 
-            ClassMemberDeclaration >> FieldDeclaration
-                    | MethodDeclaration
-                    | ClassDeclaration
-                    | InterfaceDeclaration
-                    | ";"
+                ClassMemberDeclaration >> FieldDeclaration
+                        | MethodDeclaration
+                        | ClassDeclaration
+                        | InterfaceDeclaration
+                        | ";"
 
-            FieldDeclaration >> {FieldModifier} & UnannType & VariableDeclaratorList & ";"
+                FieldDeclaration >> { FieldModifier } & UnannType & VariableDeclaratorList & ";"
 
-            FieldModifier >> Annotation | "public" | "protected" | "private" | "static" | "final"
-                    | "transient" | "volatile"
+                FieldModifier >> Annotation | "public" | "protected" | "private" | "static" | "final"
+                        | "transient" | "volatile"
 
-            VariableDeclaratorList >> VariableDeclarator & {"," & VariableDeclarator}
+                VariableDeclaratorList >> VariableDeclarator & { "," & VariableDeclarator }
 
-            VariableDeclarator >> VariableDeclaratorId & ["=" & VariableInitializer]
+                VariableDeclarator >> VariableDeclaratorId & ["=" & VariableInitializer]
 
-            VariableDeclaratorId >> Identifier & [Dims]
+                VariableDeclaratorId >> Identifier & [Dims]
 
-            VariableInitializer >> Expression
-                    | ArrayInitializer
+                VariableInitializer >> Expression
+                        | ArrayInitializer
 
-            UnannType >> UnannPrimitiveType
-                    | UnannReferenceType
+                UnannType >> UnannPrimitiveType
+                        | UnannReferenceType
 
-            UnannPrimitiveType >> NumericType
-                    | "boolean"
+                UnannPrimitiveType >> NumericType
+                        | "boolean"
 
-            UnannReferenceType >> UnannClassOrInterfaceType
-                    | UnannTypeVariable
-                    | UnannArrayType
+                UnannReferenceType >> UnannClassOrInterfaceType
+                        | UnannTypeVariable
+                        | UnannArrayType
 
-            UnannClassOrInterfaceType >> UnannClassType
-                    | UnannInterfaceType
+                UnannClassOrInterfaceType >> UnannClassType
+                        | UnannInterfaceType
 
-            UnannClassType >> TypeIdentifier & [TypeArguments]
-                    | PackageName & "." & {Annotation} & TypeIdentifier & [TypeArguments]
-                    | UnannClassOrInterfaceType & "." & {Annotation} & TypeIdentifier & [TypeArguments]
+                UnannClassType >> TypeIdentifier & [TypeArguments]
+                        | PackageName & "." & { Annotation } & TypeIdentifier & [TypeArguments]
+                        | UnannClassOrInterfaceType & "." & { Annotation } & TypeIdentifier & [TypeArguments]
 
-            UnannInterfaceType >> UnannClassType
+                UnannInterfaceType >> UnannClassType
 
-            UnannTypeVariable >> TypeIdentifier
+                UnannTypeVariable >> TypeIdentifier
 
-            UnannArrayType >> UnannPrimitiveType & Dims
-                    | UnannClassOrInterfaceType & Dims
-                    | UnannTypeVariable & Dims
+                UnannArrayType >> UnannPrimitiveType & Dims
+                        | UnannClassOrInterfaceType & Dims
+                        | UnannTypeVariable & Dims
 
-            MethodDeclaration >> {MethodModifier} & MethodHeader & MethodBody
+                MethodDeclaration >> { MethodModifier } & MethodHeader & MethodBody
 
-            MethodModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static" | "final"
-                    | "synchronized" | "native" | "strictfp"
+                MethodModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static" | "final"
+                        | "synchronized" | "native" | "strictfp"
 
-            MethodHeader >> Result & MethodDeclarator & [Throws]
-                    | TypeParameters & {Annotation} & Result & MethodDeclarator & [Throws]
+                MethodHeader >> Result & MethodDeclarator & [Throws]
+                        | TypeParameters & { Annotation } & Result & MethodDeclarator & [Throws]
 
-            Result >> UnannType
-                    | "void"
+                Result >> UnannType
+                        | "void"
 
-            MethodDeclarator >> Identifier & "(" & [ReceiverParameter & ","] & [FormalParameterList] & ")" & [Dims]
+                MethodDeclarator >> Identifier & "(" & [ReceiverParameter & ","] & [FormalParameterList] & ")" & [Dims]
 
-            ReceiverParameter >> {Annotation} & UnannType & [Identifier & "."] & "this"
+                ReceiverParameter >> { Annotation } & UnannType & [Identifier & "."] & "this"
 
-            FormalParameterList >> FormalParameter & {"," & FormalParameter}
+                FormalParameterList >> FormalParameter & { "," & FormalParameter }
 
-            FormalParameter >> {VariableModifier} & UnannType & VariableDeclaratorId
-                    | VariableArityParameter
+                FormalParameter >> { VariableModifier } & UnannType & VariableDeclaratorId
+                        | VariableArityParameter
 
-            VariableArityParameter >> {VariableModifier} & UnannType & {Annotation} & "..." & Identifier
+                VariableArityParameter >> { VariableModifier } & UnannType & { Annotation } & "..." & Identifier
 
-            VariableModifier >> Annotation
-                    | "final"
+                VariableModifier >> Annotation
+                        | "final"
 
-            Throws >> "throws" & ExceptionTypeList
+                Throws >> "throws" & ExceptionTypeList
 
-            ExceptionTypeList >> ExceptionType & {"," & ExceptionType}
+                ExceptionTypeList >> ExceptionType & { "," & ExceptionType }
 
-            ExceptionType >> ClassType
-                    | TypeVariable
+                ExceptionType >> ClassType
+                        | TypeVariable
 
-            MethodBody >> Block
-                    | ";"
+                MethodBody >> Block
+                        | ";"
 
-            InstanceInitializer >> Block
+                InstanceInitializer >> Block
 
-            StaticInitializer >> "static" & Block
+                StaticInitializer >> "static" & Block
 
-            ConstructorDeclaration >> {ConstructorModifier} & ConstructorDeclarator & [Throws] & ConstructorBody
+                ConstructorDeclaration >> { ConstructorModifier } & ConstructorDeclarator & [Throws] & ConstructorBody
 
-            ConstructorModifier >> Annotation | "public" | "protected" | "private"
+                ConstructorModifier >> Annotation | "public" | "protected" | "private"
 
-            ConstructorDeclarator >> [TypeParameters] & SimpleTypeName & "(" & [ReceiverParameter & ","]
-                    & [FormalParameterList] & ")"
+                ConstructorDeclarator >> [TypeParameters] & SimpleTypeName & "(" & [ReceiverParameter & ","]
+                        & [FormalParameterList] & ")"
 
-            SimpleTypeName >> TypeIdentifier
+                SimpleTypeName >> TypeIdentifier
 
-            ConstructorBody >> "{" & [ExplicitConstructorInvocation] & [BlockStatements] & "}"
+                ConstructorBody >> "{" & [ExplicitConstructorInvocation] & [BlockStatements] & "}"
 
-            ExplicitConstructorInvocation >> [TypeArguments] & "this" & "(" & [ArgumentList] & ")" & ";"
-                    | [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
-                    | ExpressionName & "." & [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
-                    | Primary & "." & [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
+                ExplicitConstructorInvocation >> [TypeArguments] & "this" & "(" & [ArgumentList] & ")" & ";"
+                        | [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
+                        | ExpressionName & "." & [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
+                        | Primary & "." & [TypeArguments] & "super" & "(" & [ArgumentList] & ")" & ";"
 
-            EnumDeclaration >> {ClassModifier} & "enum" & TypeIdentifier & [Superinterfaces] & EnumBody
+                EnumDeclaration >> { ClassModifier } & "enum" & TypeIdentifier & [Superinterfaces] & EnumBody
 
-            EnumBody >> "{" & [EnumConstantList] & [","] & [EnumBodyDeclarations] & "}"
+                EnumBody >> "{" & [EnumConstantList] & [","] & [EnumBodyDeclarations] & "}"
 
-            EnumConstantList >> EnumConstant & {"," & EnumConstant}
+                EnumConstantList >> EnumConstant & { "," & EnumConstant }
 
-            EnumConstant >> {EnumConstantModifier} & Identifier & ["(" & [ArgumentList] & ")"] & [ClassBody]
+                EnumConstant >> { EnumConstantModifier } & Identifier & ["(" & [ArgumentList] & ")"] & [ClassBody]
 
-            EnumConstantModifier >> Annotation
+                EnumConstantModifier >> Annotation
 
-            EnumBodyDeclarations >> ";" & {ClassBodyDeclaration}
+                EnumBodyDeclarations >> ";" & { ClassBodyDeclaration }
 
-            InterfaceDeclaration >> NormalInterfaceDeclaration
-                    | AnnotationTypeDeclaration
+                InterfaceDeclaration >> NormalInterfaceDeclaration
+                        | AnnotationTypeDeclaration
 
-            NormalInterfaceDeclaration >> {InterfaceModifier} & "interface" & TypeIdentifier & [TypeParameters]
-                    & [ExtendsInterfaces] & InterfaceBody
+                NormalInterfaceDeclaration >> { InterfaceModifier } & "interface" & TypeIdentifier & [TypeParameters]
+                        & [ExtendsInterfaces] & InterfaceBody
 
-            InterfaceModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static" | "strictfp"
+                InterfaceModifier >> Annotation | "public" | "protected" | "private" | "abstract" | "static" | "strictfp"
 
-            ExtendsInterfaces >> "extends" & InterfaceTypeList
+                ExtendsInterfaces >> "extends" & InterfaceTypeList
 
-            InterfaceBody >> "{" & {InterfaceMemberDeclaration} & "}"
+                InterfaceBody >> "{" & { InterfaceMemberDeclaration } & "}"
 
-            InterfaceMemberDeclaration >> ConstantDeclaration
-                    | InterfaceMethodDeclaration
-                    | ClassDeclaration
-                    | InterfaceDeclaration
-                    | ";"
+                InterfaceMemberDeclaration >> ConstantDeclaration
+                        | InterfaceMethodDeclaration
+                        | ClassDeclaration
+                        | InterfaceDeclaration
+                        | ";"
 
-            ConstantDeclaration >> {ConstantModifier} & UnannType & VariableDeclaratorList & ";"
+                ConstantDeclaration >> { ConstantModifier } & UnannType & VariableDeclaratorList & ";"
 
-            ConstantModifier >> Annotation | "public" | "static" | "final"
+                ConstantModifier >> Annotation | "public" | "static" | "final"
 
-            InterfaceMethodDeclaration >> {InterfaceMethodModifier} & MethodHeader & MethodBody
+                InterfaceMethodDeclaration >> { InterfaceMethodModifier } & MethodHeader & MethodBody
 
-            InterfaceMethodModifier >> Annotation | "public" | "private" | "abstract" | "default" | "static" | "strictfp"
+                InterfaceMethodModifier >> Annotation | "public" | "private" | "abstract" | "default" | "static" | "strictfp"
 
-            AnnotationTypeDeclaration >> {InterfaceModifier} & "@" & "interface" & TypeIdentifier & AnnotationTypeBody
+                AnnotationTypeDeclaration >> { InterfaceModifier } & "@" & "interface" & TypeIdentifier & AnnotationTypeBody
 
-            AnnotationTypeBody >> "{" & {AnnotationTypeMemberDeclaration} & "}"
+                AnnotationTypeBody >> "{" & { AnnotationTypeMemberDeclaration } & "}"
 
-            AnnotationTypeMemberDeclaration >> AnnotationTypeElementDeclaration
-                    | ConstantDeclaration
-                    | ClassDeclaration
-                    | InterfaceDeclaration
-                    | ";"
+                AnnotationTypeMemberDeclaration >> AnnotationTypeElementDeclaration
+                        | ConstantDeclaration
+                        | ClassDeclaration
+                        | InterfaceDeclaration
+                        | ";"
 
-            AnnotationTypeElementDeclaration >> {AnnotationTypeElementModifier} & UnannType & Identifier & "(" & ")" & [Dims]
-                    & [DefaultValue] & ";"
+                AnnotationTypeElementDeclaration >> { AnnotationTypeElementModifier } & UnannType & Identifier & "(" & ")" & [Dims]
+                        & [DefaultValue] & ";"
 
-            AnnotationTypeElementModifier >> Annotation | "public" | "abstract"
+                AnnotationTypeElementModifier >> Annotation | "public" | "abstract"
 
-            DefaultValue >> "default" & ElementValue
+                DefaultValue >> "default" & ElementValue
 
-            Annotation >> NormalAnnotation
-                    | MarkerAnnotation
-                    | SingleElementAnnotation
+                Annotation >> NormalAnnotation
+                        | MarkerAnnotation
+                        | SingleElementAnnotation
 
-            NormalAnnotation >> "@" & TypeName & "(" & [ElementValuePairList] & ")"
+                NormalAnnotation >> "@" & TypeName & "(" & [ElementValuePairList] & ")"
 
-            ElementValuePairList >> ElementValuePair & {"," & ElementValuePair}
+                ElementValuePairList >> ElementValuePair & { "," & ElementValuePair }
 
-            ElementValuePair >> Identifier & "=" & ElementValue
+                ElementValuePair >> Identifier & "=" & ElementValue
 
-            ElementValue >> ConditionalExpression
-                    | ElementValueArrayInitializer
-                    | Annotation
+                ElementValue >> ConditionalExpression
+                        | ElementValueArrayInitializer
+                        | Annotation
 
-            ElementValueArrayInitializer >> "{" & [ElementValueList] & [","] & "}"
+                ElementValueArrayInitializer >> "{" & [ElementValueList] & [","] & "}"
 
-            ElementValueList >> ElementValue & {"," & ElementValue}
+                ElementValueList >> ElementValue & { "," & ElementValue }
 
-            MarkerAnnotation >> "@" & TypeName
+                MarkerAnnotation >> "@" & TypeName
 
-            SingleElementAnnotation >> "@" & TypeName & "(" & ElementValue & ")"
+                SingleElementAnnotation >> "@" & TypeName & "(" & ElementValue & ")"
 
-            ArrayInitializer >> "{" & [VariableInitializerList] & [","] & "}"
+                ArrayInitializer >> "{" & [VariableInitializerList] & [","] & "}"
 
-            VariableInitializerList >> VariableInitializer & {"," & VariableInitializer}
+                VariableInitializerList >> VariableInitializer & { "," & VariableInitializer }
 
-            Block >> "{" & [BlockStatements] & "}"
+                Block >> "{" & [BlockStatements] & "}"
 
-            BlockStatements >> BlockStatement & {BlockStatement}
+                BlockStatements >> BlockStatement & { BlockStatement }
 
-            BlockStatement >> LocalVariableDeclarationStatement
-                    | ClassDeclaration
-                    | Statement
+                BlockStatement >> LocalVariableDeclarationStatement
+                        | ClassDeclaration
+                        | Statement
 
-            LocalVariableDeclarationStatement >> LocalVariableDeclaration & ";"
+                LocalVariableDeclarationStatement >> LocalVariableDeclaration & ";"
 
-            LocalVariableDeclaration >> {VariableModifier} & LocalVariableType & VariableDeclaratorList
+                LocalVariableDeclaration >> { VariableModifier } & LocalVariableType & VariableDeclaratorList
 
-            LocalVariableType >> UnannType
-                    | "var"
+                LocalVariableType >> UnannType
+                        | "var"
 
-            Statement >> StatementWithoutTrailingSubstatement
-                    | LabeledStatement
-                    | IfThenStatement
-                    | IfThenElseStatement
-                    | WhileStatement
-                    | ForStatement
+                Statement >> StatementWithoutTrailingSubstatement
+                        | LabeledStatement
+                        | IfThenStatement
+                        | IfThenElseStatement
+                        | WhileStatement
+                        | ForStatement
 
-            StatementNoShortIf >> StatementWithoutTrailingSubstatement
-                    | LabeledStatementNoShortIf
-                    | IfThenElseStatementNoShortIf
-                    | WhileStatementNoShortIf
-                    | ForStatementNoShortIf
+                StatementNoShortIf >> StatementWithoutTrailingSubstatement
+                        | LabeledStatementNoShortIf
+                        | IfThenElseStatementNoShortIf
+                        | WhileStatementNoShortIf
+                        | ForStatementNoShortIf
 
-            StatementWithoutTrailingSubstatement >> Block
-                    | EmptyStatement
-                    | ExpressionStatement
-                    | AssertStatement
-                    | SwitchStatement
-                    | DoStatement
-                    | BreakStatement
-                    | ContinueStatement
-                    | ReturnStatement
-                    | SynchronizedStatement
-                    | ThrowStatement
-                    | TryStatement
-                    | YieldStatement
+                StatementWithoutTrailingSubstatement >> Block
+                        | EmptyStatement
+                        | ExpressionStatement
+                        | AssertStatement
+                        | SwitchStatement
+                        | DoStatement
+                        | BreakStatement
+                        | ContinueStatement
+                        | ReturnStatement
+                        | SynchronizedStatement
+                        | ThrowStatement
+                        | TryStatement
+                        | YieldStatement
 
-            EmptyStatement >> ";"
+                EmptyStatement >> ";"
 
-            LabeledStatement >> Identifier & ":" & Statement
+                LabeledStatement >> Identifier & ":" & Statement
 
-            LabeledStatementNoShortIf >> Identifier & ":" & StatementNoShortIf
+                LabeledStatementNoShortIf >> Identifier & ":" & StatementNoShortIf
 
-            ExpressionStatement >> StatementExpression & ";"
+                ExpressionStatement >> StatementExpression & ";"
 
-            StatementExpression >> Assignment
-                    | PreIncrementExpression
-                    | PreDecrementExpression
-                    | PostIncrementExpression
-                    | PostDecrementExpression
-                    | MethodInvocation
-                    | ClassInstanceCreationExpression
+                StatementExpression >> Assignment
+                        | PreIncrementExpression
+                        | PreDecrementExpression
+                        | PostIncrementExpression
+                        | PostDecrementExpression
+                        | MethodInvocation
+                        | ClassInstanceCreationExpression
 
-            IfThenStatement >> "if" & "(" & Expression & ")" & Statement
+                IfThenStatement >> "if" & "(" & Expression & ")" & Statement
 
-            IfThenElseStatement >> "if" & "(" & Expression & ")" & StatementNoShortIf & "else" & Statement
+                IfThenElseStatement >> "if" & "(" & Expression & ")" & StatementNoShortIf & "else" & Statement
 
-            IfThenElseStatementNoShortIf >> "if" & "(" & Expression & ")" & StatementNoShortIf & "else" & StatementNoShortIf
+                IfThenElseStatementNoShortIf >> "if" & "(" & Expression & ")" & StatementNoShortIf & "else" & StatementNoShortIf
 
-            AssertStatement >> "assert" & Expression & ";"
-                    | "assert" & Expression & ":" & Expression & ";"
+                AssertStatement >> "assert" & Expression & ";"
+                        | "assert" & Expression & ":" & Expression & ";"
 
-            SwitchStatement >> "switch" & "(" & Expression & ")" & SwitchBlock
+                SwitchStatement >> "switch" & "(" & Expression & ")" & SwitchBlock
 
-            SwitchBlock >> "{" & SwitchRule & {SwitchRule} & "}"
-                    | "{" & {SwitchBlockStatementGroup} & {SwitchLabel & ":"} & "}"
+                SwitchBlock >> "{" & SwitchRule & { SwitchRule } & "}"
+                        | "{" & { SwitchBlockStatementGroup } & { SwitchLabel & ":" } & "}"
 
-            SwitchRule >> SwitchLabel & "->" & Expression & ";"
-                    | SwitchLabel & "->" & Block
-                    | SwitchLabel & "->" & ThrowStatement
+                SwitchRule >> SwitchLabel & "->" & Expression & ";"
+                        | SwitchLabel & "->" & Block
+                        | SwitchLabel & "->" & ThrowStatement
 
-            SwitchBlockStatementGroup >> SwitchLabel & ":" & {SwitchLabel & ":"} & BlockStatements
+                SwitchBlockStatementGroup >> SwitchLabel & ":" & { SwitchLabel & ":" } & BlockStatements
 
-            SwitchLabel >> "case" & CaseConstant & {"," & CaseConstant}
-                    | "default"
+                SwitchLabel >> "case" & CaseConstant & { "," & CaseConstant }
+                        | "default"
 
-            CaseConstant >> ConditionalExpression
+                CaseConstant >> ConditionalExpression
 
-            WhileStatement >> "while" & "(" & Expression & ")" & Statement
+                WhileStatement >> "while" & "(" & Expression & ")" & Statement
 
-            WhileStatementNoShortIf >> "while" & "(" & Expression & ")" & StatementNoShortIf
+                WhileStatementNoShortIf >> "while" & "(" & Expression & ")" & StatementNoShortIf
 
-            DoStatement >> "do" & Statement & "while" & "(" & Expression & ")" & ";"
+                DoStatement >> "do" & Statement & "while" & "(" & Expression & ")" & ";"
 
-            ForStatement >> BasicForStatement
-                    | EnhancedForStatement
+                ForStatement >> BasicForStatement
+                        | EnhancedForStatement
 
-            ForStatementNoShortIf >> BasicForStatementNoShortIf
-                    | EnhancedForStatementNoShortIf
+                ForStatementNoShortIf >> BasicForStatementNoShortIf
+                        | EnhancedForStatementNoShortIf
 
-            BasicForStatement >> "for" & "(" & [ForInit] & ";" & [Expression] & ";" & [ForUpdate] & ")" & Statement
+                BasicForStatement >> "for" & "(" & [ForInit] & ";" & [Expression] & ";" & [ForUpdate] & ")" & Statement
 
-            BasicForStatementNoShortIf >> "for" & "(" & [ForInit] & ";" & [Expression] & ";" & [ForUpdate]
-                    & ")" & StatementNoShortIf
+                BasicForStatementNoShortIf >> "for" & "(" & [ForInit] & ";" & [Expression] & ";" & [ForUpdate]
+                        & ")" & StatementNoShortIf
 
-            ForInit >> StatementExpressionList
-                    | LocalVariableDeclaration
+                ForInit >> StatementExpressionList
+                        | LocalVariableDeclaration
 
-            ForUpdate >> StatementExpressionList
+                ForUpdate >> StatementExpressionList
 
-            StatementExpressionList >> StatementExpression & {"," & StatementExpression}
+                StatementExpressionList >> StatementExpression & { "," & StatementExpression }
 
-            EnhancedForStatement >> "for" & "(" & {VariableModifier} & LocalVariableType & VariableDeclaratorId & ":"
-                    & Expression & ")" & Statement
+                EnhancedForStatement >> "for" & "(" & { VariableModifier } & LocalVariableType & VariableDeclaratorId & ":"
+                        & Expression & ")" & Statement
 
-            EnhancedForStatementNoShortIf >> "for" & "(" & {VariableModifier} & LocalVariableType & VariableDeclaratorId & ":"
-                    & Expression & ")" & StatementNoShortIf
+                EnhancedForStatementNoShortIf >> "for" & "(" & { VariableModifier } & LocalVariableType & VariableDeclaratorId & ":"
+                        & Expression & ")" & StatementNoShortIf
 
-            BreakStatement >> "break" & [Identifier] & ";"
+                BreakStatement >> "break" & [Identifier] & ";"
 
-            YieldStatement >> "yield" & Expression & ";"
+                YieldStatement >> "yield" & Expression & ";"
 
-            ContinueStatement >> "continue" & [Identifier] & ";"
+                ContinueStatement >> "continue" & [Identifier] & ";"
 
-            ReturnStatement >> "return" & [Expression] & ";"
+                ReturnStatement >> "return" & [Expression] & ";"
 
-            ThrowStatement >> "throw" & Expression & ";"
+                ThrowStatement >> "throw" & Expression & ";"
 
-            SynchronizedStatement >> "synchronized" & "(" & Expression & ")" & Block
+                SynchronizedStatement >> "synchronized" & "(" & Expression & ")" & Block
 
-            TryStatement >> "try" & Block & Catches
-                    | "try" & Block & [Catches] & Finally
-                    | TryWithResourcesStatement
+                TryStatement >> "try" & Block & Catches
+                        | "try" & Block & [Catches] & Finally
+                        | TryWithResourcesStatement
 
-            Catches >> CatchClause & {CatchClause}
+                Catches >> CatchClause & { CatchClause }
 
-            CatchClause >> "catch" & "(" & CatchFormalParameter & ")" & Block
+                CatchClause >> "catch" & "(" & CatchFormalParameter & ")" & Block
 
-            CatchFormalParameter >> {VariableModifier} & CatchType & VariableDeclaratorId
+                CatchFormalParameter >> { VariableModifier } & CatchType & VariableDeclaratorId
 
-            CatchType >> UnannClassType & {"|" & ClassType}
+                CatchType >> UnannClassType & { "|" & ClassType }
 
-            Finally >> "finally" & Block
+                Finally >> "finally" & Block
 
-            TryWithResourcesStatement >> "try" & ResourceSpecification & Block & [Catches] & [Finally]
+                TryWithResourcesStatement >> "try" & ResourceSpecification & Block & [Catches] & [Finally]
 
-            ResourceSpecification >> "(" & ResourceList & [";"] & ")"
+                ResourceSpecification >> "(" & ResourceList & [";"] & ")"
 
-            ResourceList >> Resource & {";" & Resource}
+                ResourceList >> Resource & { ";" & Resource }
 
-            Resource >> {VariableModifier} & LocalVariableType & Identifier & "=" & Expression
-                    | VariableAccess
+                Resource >> { VariableModifier } & LocalVariableType & Identifier & "=" & Expression
+                        | VariableAccess
 
-            Primary >> PrimaryNoNewArray
-                    | ArrayCreationExpression
+                Primary >> PrimaryNoNewArray
+                        | ArrayCreationExpression
 
-            PrimaryNoNewArray >> Literal
-                    | ClassLiteral
-                    | "this"
-                    | TypeName & "." & "this"
-                    | "(" & Expression & ")"
-                    | ClassInstanceCreationExpression
-                    | FieldAccess
-                    | ArrayAccess
-                    | MethodInvocation
-                    | MethodReference
+                PrimaryNoNewArray >> Literal
+                        | ClassLiteral
+                        | "this"
+                        | TypeName & "." & "this"
+                        | "(" & Expression & ")"
+                        | ClassInstanceCreationExpression
+                        | FieldAccess
+                        | ArrayAccess
+                        | MethodInvocation
+                        | MethodReference
 
-            ClassLiteral >> TypeName & {"[" & "]"} & "." & "class"
-                    | NumericType & {"[" & "]"} & "." & "class"
-                    | "boolean" & {"[" & "]"} & "." & "class"
-                    | "void" & "." & "class"
+                ClassLiteral >> TypeName & { "[" & "]" } & "." & "class"
+                        | NumericType & { "[" & "]" } & "." & "class"
+                        | "boolean" & { "[" & "]" } & "." & "class"
+                        | "void" & "." & "class"
 
-            ClassInstanceCreationExpression >> UnqualifiedClassInstanceCreationExpression
-                    | ExpressionName & "." & UnqualifiedClassInstanceCreationExpression
-                    | Primary & "." & UnqualifiedClassInstanceCreationExpression
+                ClassInstanceCreationExpression >> UnqualifiedClassInstanceCreationExpression
+                        | ExpressionName & "." & UnqualifiedClassInstanceCreationExpression
+                        | Primary & "." & UnqualifiedClassInstanceCreationExpression
 
-            UnqualifiedClassInstanceCreationExpression >> "new" & [TypeArguments] & ClassOrInterfaceTypeToInstantiate & "("
-                    & [ArgumentList] & ")" & [ClassBody]
+                UnqualifiedClassInstanceCreationExpression >> "new" & [TypeArguments] & ClassOrInterfaceTypeToInstantiate & "("
+                        & [ArgumentList] & ")" & [ClassBody]
 
-            ClassOrInterfaceTypeToInstantiate >> {Annotation} & Identifier & {"." & {Annotation}
-                    & Identifier} & [TypeArgumentsOrDiamond]
+                ClassOrInterfaceTypeToInstantiate >> { Annotation } & Identifier & {
+                    "." & { Annotation }
+                            & Identifier
+                } & [TypeArgumentsOrDiamond]
 
-            TypeArgumentsOrDiamond >> TypeArguments
-                    | "<>"
+                TypeArgumentsOrDiamond >> TypeArguments
+                        | "<>"
 
-            FieldAccess >> Primary & "." & Identifier
-                    | "super" & "." & Identifier
-                    | TypeName & "." & "super" & "." & Identifier
+                FieldAccess >> Primary & "." & Identifier
+                        | "super" & "." & Identifier
+                        | TypeName & "." & "super" & "." & Identifier
 
-            ArrayAccess >> ExpressionName & "[" & Expression & "]"
-                    | PrimaryNoNewArray & "[" & Expression & "]"
+                ArrayAccess >> ExpressionName & "[" & Expression & "]"
+                        | PrimaryNoNewArray & "[" & Expression & "]"
 
-            MethodInvocation >> MethodName & "(" & [ArgumentList] & ")"
-                    | TypeName & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
-                    | ExpressionName & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
-                    | Primary & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
-                    | "super" & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
-                    | TypeName & "." & "super" & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
+                MethodInvocation >> MethodName & "(" & [ArgumentList] & ")"
+                        | TypeName & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
+                        | ExpressionName & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
+                        | Primary & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
+                        | "super" & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
+                        | TypeName & "." & "super" & "." & [TypeArguments] & Identifier & "(" & [ArgumentList] & ")"
 
-            ArgumentList >> Expression & {"," & Expression}
+                ArgumentList >> Expression & { "," & Expression }
 
-            MethodReference >> ExpressionName & "::" & [TypeArguments] & Identifier
-                    | Primary & "::" & [TypeArguments] & Identifier
-                    | ReferenceType & "::" & [TypeArguments] & Identifier
-                    | "super" & "::" & [TypeArguments] & Identifier
-                    | TypeName & "." & "super" & "::" & [TypeArguments] & Identifier
-                    | ClassType & "::" & [TypeArguments] & "new"
-                    | ArrayType & "::" & "new"
+                MethodReference >> ExpressionName & "::" & [TypeArguments] & Identifier
+                        | Primary & "::" & [TypeArguments] & Identifier
+                        | ReferenceType & "::" & [TypeArguments] & Identifier
+                        | "super" & "::" & [TypeArguments] & Identifier
+                        | TypeName & "." & "super" & "::" & [TypeArguments] & Identifier
+                        | ClassType & "::" & [TypeArguments] & "new"
+                        | ArrayType & "::" & "new"
 
-            ArrayCreationExpression >> "new" & PrimitiveType & DimExprs & [Dims]
-                    | "new" & ClassOrInterfaceType & DimExprs & [Dims]
-                    | "new" & PrimitiveType & Dims & ArrayInitializer
-                    | "new" & ClassOrInterfaceType & Dims & ArrayInitializer
+                ArrayCreationExpression >> "new" & PrimitiveType & DimExprs & [Dims]
+                        | "new" & ClassOrInterfaceType & DimExprs & [Dims]
+                        | "new" & PrimitiveType & Dims & ArrayInitializer
+                        | "new" & ClassOrInterfaceType & Dims & ArrayInitializer
 
-            DimExprs >> DimExpr & {DimExpr}
+                DimExprs >> DimExpr & { DimExpr }
 
-            DimExpr >> {Annotation} & "[" & Expression & "]"
+                DimExpr >> { Annotation } & "[" & Expression & "]"
 
-            Expression >> LambdaExpression
-                    | AssignmentExpression
+                Expression >> LambdaExpression
+                        | AssignmentExpression
 
-            LambdaExpression >> LambdaParameters & "->" & LambdaBody
+                LambdaExpression >> LambdaParameters & "->" & LambdaBody
 
-            LambdaParameters >> "(" & [LambdaParameterList] & ")"
-                    | Identifier
+                LambdaParameters >> "(" & [LambdaParameterList] & ")"
+                        | Identifier
 
-            LambdaParameterList >> LambdaParameter & {"," & LambdaParameter}
-                    | Identifier & {"," & Identifier}
+                LambdaParameterList >> LambdaParameter & { "," & LambdaParameter }
+                        | Identifier & { "," & Identifier }
 
-            LambdaParameter >> {VariableModifier} & LambdaParameterType & VariableDeclaratorId
-                    | VariableArityParameter
+                LambdaParameter >> { VariableModifier } & LambdaParameterType & VariableDeclaratorId
+                        | VariableArityParameter
 
-            LambdaParameterType >> UnannType
-                    | "var"
+                LambdaParameterType >> UnannType
+                        | "var"
 
-            LambdaBody >> Expression
-                    | Block
+                LambdaBody >> Expression
+                        | Block
 
-            AssignmentExpression >> ConditionalExpression
-                    | Assignment
+                AssignmentExpression >> ConditionalExpression
+                        | Assignment
 
-            Assignment >> LeftHandSide & AssignmentOperator & Expression
+                Assignment >> LeftHandSide & AssignmentOperator & Expression
 
-            LeftHandSide >> ExpressionName
-                    | FieldAccess
-                    | ArrayAccess
+                LeftHandSide >> ExpressionName
+                        | FieldAccess
+                        | ArrayAccess
 
-            AssignmentOperator >> "=" | "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
+                AssignmentOperator >> "=" | "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
 
-            ConditionalExpression >> ConditionalOrExpression
-                    | ConditionalOrExpression & "?" & Expression & ":" & ConditionalExpression
-                    | ConditionalOrExpression & "?" & Expression & ":" & LambdaExpression
+                ConditionalExpression >> ConditionalOrExpression
+                        | ConditionalOrExpression & "?" & Expression & ":" & ConditionalExpression
+                        | ConditionalOrExpression & "?" & Expression & ":" & LambdaExpression
 
-            ConditionalOrExpression >> ConditionalAndExpression
-                    | ConditionalOrExpression & "||" & ConditionalAndExpression
+                ConditionalOrExpression >> ConditionalAndExpression
+                        | ConditionalOrExpression & "||" & ConditionalAndExpression
 
-            ConditionalAndExpression >> InclusiveOrExpression
-                    | ConditionalAndExpression & "&&" & InclusiveOrExpression
+                ConditionalAndExpression >> InclusiveOrExpression
+                        | ConditionalAndExpression & "&&" & InclusiveOrExpression
 
-            InclusiveOrExpression >> ExclusiveOrExpression
-                    | InclusiveOrExpression & "|" & ExclusiveOrExpression
+                InclusiveOrExpression >> ExclusiveOrExpression
+                        | InclusiveOrExpression & "|" & ExclusiveOrExpression
 
-            ExclusiveOrExpression >> AndExpression
-                    | ExclusiveOrExpression & "^" & AndExpression
+                ExclusiveOrExpression >> AndExpression
+                        | ExclusiveOrExpression & "^" & AndExpression
 
-            AndExpression >> EqualityExpression
-                    | AndExpression & "&" & EqualityExpression
+                AndExpression >> EqualityExpression
+                        | AndExpression & "&" & EqualityExpression
 
-            EqualityExpression >> RelationalExpression
-                    | EqualityExpression & "==" & RelationalExpression
-                    | EqualityExpression & "!=" & RelationalExpression
+                EqualityExpression >> RelationalExpression
+                        | EqualityExpression & "==" & RelationalExpression
+                        | EqualityExpression & "!=" & RelationalExpression
 
-            RelationalExpression >> ShiftExpression
-                    | RelationalExpression & "<" & ShiftExpression
-                    | RelationalExpression & ">" & ShiftExpression
-                    | RelationalExpression & "<=" & ShiftExpression
-                    | RelationalExpression & ">=" & ShiftExpression
-                    | RelationalExpression & "instanceof" & ReferenceType
+                RelationalExpression >> ShiftExpression
+                        | RelationalExpression & "<" & ShiftExpression
+                        | RelationalExpression & ">" & ShiftExpression
+                        | RelationalExpression & "<=" & ShiftExpression
+                        | RelationalExpression & ">=" & ShiftExpression
+                        | RelationalExpression & "instanceof" & ReferenceType
 
-            ShiftExpression >> AdditiveExpression
-                    | ShiftExpression & "<<" & AdditiveExpression
-                    | ShiftExpression & ">>" & AdditiveExpression
-                    | ShiftExpression & ">>>" & AdditiveExpression
+                ShiftExpression >> AdditiveExpression
+                        | ShiftExpression & "<<" & AdditiveExpression
+                        | ShiftExpression & ">>" & AdditiveExpression
+                        | ShiftExpression & ">>>" & AdditiveExpression
 
-            AdditiveExpression >> MultiplicativeExpression
-                    | AdditiveExpression & "+" & MultiplicativeExpression
-                    | AdditiveExpression & "-" & MultiplicativeExpression
+                AdditiveExpression >> MultiplicativeExpression
+                        | AdditiveExpression & "+" & MultiplicativeExpression
+                        | AdditiveExpression & "-" & MultiplicativeExpression
 
-            MultiplicativeExpression >> UnaryExpression
-                    | MultiplicativeExpression & "*" & UnaryExpression
-                    | MultiplicativeExpression & "/" & UnaryExpression
-                    | MultiplicativeExpression & "%" & UnaryExpression
+                MultiplicativeExpression >> UnaryExpression
+                        | MultiplicativeExpression & "*" & UnaryExpression
+                        | MultiplicativeExpression & "/" & UnaryExpression
+                        | MultiplicativeExpression & "%" & UnaryExpression
 
-            UnaryExpression >> PreIncrementExpression
-                    | PreDecrementExpression
-                    | "+" & UnaryExpression
-                    | "-" & UnaryExpression
-                    | UnaryExpressionNotPlusMinus
+                UnaryExpression >> PreIncrementExpression
+                        | PreDecrementExpression
+                        | "+" & UnaryExpression
+                        | "-" & UnaryExpression
+                        | UnaryExpressionNotPlusMinus
 
-            PreIncrementExpression >> "++" & UnaryExpression
+                PreIncrementExpression >> "++" & UnaryExpression
 
-            PreDecrementExpression >> "--" & UnaryExpression
+                PreDecrementExpression >> "--" & UnaryExpression
 
-            UnaryExpressionNotPlusMinus >> PostfixExpression
-                    | "~" & UnaryExpression
-                    | "!" & UnaryExpression
-                    | CastExpression
-                    | SwitchExpression
+                UnaryExpressionNotPlusMinus >> PostfixExpression
+                        | "~" & UnaryExpression
+                        | "!" & UnaryExpression
+                        | CastExpression
+                        | SwitchExpression
 
-            PostfixExpression >> Primary
-                    | ExpressionName
-                    | PostIncrementExpression
-                    | PostDecrementExpression
+                PostfixExpression >> Primary
+                        | ExpressionName
+                        | PostIncrementExpression
+                        | PostDecrementExpression
 
-            PostIncrementExpression >> PostfixExpression & "++"
+                PostIncrementExpression >> PostfixExpression & "++"
 
-            PostDecrementExpression >> PostfixExpression & "--"
+                PostDecrementExpression >> PostfixExpression & "--"
 
-            CastExpression >> "(" & PrimitiveType & ")" & UnaryExpression
-                    | "(" & ReferenceType & {AdditionalBound} & ")" & UnaryExpressionNotPlusMinus
-                    | "(" & ReferenceType & {AdditionalBound} & ")" & LambdaExpression
+                CastExpression >> "(" & PrimitiveType & ")" & UnaryExpression
+                        | "(" & ReferenceType & { AdditionalBound } & ")" & UnaryExpressionNotPlusMinus
+                        | "(" & ReferenceType & { AdditionalBound } & ")" & LambdaExpression
 
-            SwitchExpression >> "switch" & "(" & Expression & ")" & SwitchBlock
+                SwitchExpression >> "switch" & "(" & Expression & ")" & SwitchBlock
 
-            ConstantExpression >> Expression
+                ConstantExpression >> Expression
+            }
+
+            println(java.follow())
         }
-
-        println(java.follow())
     }
 }

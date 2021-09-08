@@ -1,6 +1,5 @@
 package il.ac.openu.flue.model.rule
 
-import il.ac.openu.flue.model.ebnf.element.Variable
 import spock.lang.Specification
 import static il.ac.openu.flue.model.rule.ExpressionTest.V.*
 import static il.ac.openu.flue.model.rule.Expression.Visitor
@@ -9,11 +8,7 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * @author Noam Rotem
  */
 class ExpressionTest extends Specification {
-    enum V implements Variable {A, B, C}
-
-    static def nt(Variable v) {
-        new NonTerminal(v)
-    }
+    enum V implements NonTerminal {A, B, C}
 
     Visitor<String> visitor = new Visitor<String>() {
         @Override
@@ -60,13 +55,13 @@ class ExpressionTest extends Specification {
              expression.accept(visitor) == path
 
         where:
-            expression                                          | path
-            nt(A)                                               | "A;"
-            new Terminal("A")                                   | "\"A\";"
-            new Or(nt(A), nt(B))                                | "or;A;B;"
-            new Then(nt(A), nt(B))                              | "then;A;B;"
-            new Then(new Optional(nt(A)), new Repeated(nt(B)))  | "then;optional;A;repeated;B;"
-            new Optional(new Or(nt(A), new Repeated(nt(B))))    | "optional;or;A;repeated;B;"
+            expression                                  | path
+            A                                           | "A;"
+            new Terminal("A")                           | "\"A\";"
+            new Or(A, B)                                | "or;A;B;"
+            new Then(A, B)                              | "then;A;B;"
+            new Then(new Optional(A), new Repeated(B))  | "then;optional;A;repeated;B;"
+            new Optional(new Or(A, new Repeated(B)))    | "optional;or;A;repeated;B;"
     }
 
     def "testEquals"(Expression e1, Expression e2, boolean result) {
@@ -74,19 +69,19 @@ class ExpressionTest extends Specification {
             (e1 == e2) == result
 
         where:
-            e1                          | e2                     | result
-            nt(A)                       | nt(A)                  | true
-            nt(A)                       | nt(B)                  | false
-            new Terminal("A")           | new Terminal("A")      | true
-            new Terminal("A")           | new Terminal("B")      | false
-            new Or(nt(A), nt(B))        | new Or(nt(A), nt(B))   | true
-            new Or(nt(A), nt(B))        | new Or(nt(B), nt(A))   | false
-            new Or(nt(A), nt(B), nt(C)) | new Or(nt(A), nt(B))   | false
-            new Then(nt(A), nt(B))      | new Then(nt(A), nt(B)) | true
-            new Then(nt(A), nt(B))      | new Then(nt(B), nt(A)) | false
-            new Then(nt(A), nt(B))      | new Or(nt(A), nt(B))   | false
-            new Optional(nt(A))         | new Optional(nt(A))    | true
-            new Optional(nt(A))         | new Optional(nt(B))    | false
-            new Optional(nt(A))         | nt(A)                  | false
+            e1                  | e2                | result
+            A                   | A                 | true
+            A                   | B                 | false
+            new Terminal("A")   | new Terminal("A") | true
+            new Terminal("A")   | new Terminal("B") | false
+            new Or(A, B)        | new Or(A, B)      | true
+            new Or(A, B)        | new Or(B, A)      | false
+            new Or(A, B, C)     | new Or(A, B)      | false
+            new Then(A, B)      | new Then(A, B)    | true
+            new Then(A, B)      | new Then(B, A)    | false
+            new Then(A, B)      | new Or(A, B)      | false
+            new Optional(A)     | new Optional(A)   | true
+            new Optional(A)     | new Optional(B)   | false
+            new Optional(A)     | A                 | false
     }
 }

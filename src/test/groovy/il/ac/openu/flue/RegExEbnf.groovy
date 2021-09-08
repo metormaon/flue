@@ -1,8 +1,8 @@
 package il.ac.openu.flue
 
 import il.ac.openu.flue.model.ebnf.EBNF
-import il.ac.openu.flue.model.ebnf.element.RawRule
-import il.ac.openu.flue.model.ebnf.element.Variable
+import il.ac.openu.flue.model.rule.NonTerminal
+import il.ac.openu.flue.model.rule.Rule
 import il.ac.openu.flue.pipeline.GrammarToNFA
 
 import static il.ac.openu.flue.RegExEbnf.V.*
@@ -12,7 +12,7 @@ import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
  * @author Noam Rotem
  */
 class RegExEbnf {
-    static enum V implements Variable {Regex, Expression, StartOfStringAnchor, Subexpression, SubexpressionItem, Match,
+    static enum V implements NonTerminal {Regex, Expression, StartOfStringAnchor, Subexpression, SubexpressionItem, Match,
         Group, Anchor, BackReference, GroupNonCapturingModifier, Quantifier, MatchItem, MatchAnyCharacter,
         MatchCharacterClass, MatchCharacter, CharacterGroup, CharacterClass, CharacterClassFromUnicodeCategory, Char,
         CharacterGroupNegativeModifier, CharacterGroupItem, CharacterRange, CharacterClassAnyWord,
@@ -131,7 +131,7 @@ class RegExEbnf {
         }
 
         regex.rawRules.forEach {
-            println(GrammarToNFA.fromRule(it as RawRule))
+            println(GrammarToNFA.fromRule(it as Rule))
             println(it)
         }
     }

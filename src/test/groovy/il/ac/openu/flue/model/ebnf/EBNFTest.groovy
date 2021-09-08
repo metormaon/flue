@@ -1,6 +1,6 @@
 package il.ac.openu.flue.model.ebnf
 
-import il.ac.openu.flue.model.ebnf.element.Variable
+import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
 import il.ac.openu.flue.model.rule.NonTerminal
 import il.ac.openu.flue.model.rule.Or
 import il.ac.openu.flue.model.rule.Repeated
@@ -13,18 +13,14 @@ import org.junit.jupiter.api.Test
 import static groovy.test.GroovyAssert.shouldFail
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 import static il.ac.openu.flue.model.ebnf.EBNFTest.V.*
-import static il.ac.openu.flue.model.ebnf.element.Token.*
 import static il.ac.openu.flue.model.rule.Expression.Visitor
+import static il.ac.openu.flue.model.rule.Terminal.ε
 
 /**
  * @author Noam Rotem
  */
 class EBNFTest {
-    static enum V implements Variable { A, B, C, D, E, F, G }
-
-    static def v(Variable v) {
-        new NonTerminal(v)
-    }
+    static enum V implements NonTerminal { A, B, C, D, E, F, G }
 
     static def t(String s) {
         new Terminal(s)
@@ -77,7 +73,7 @@ class EBNFTest {
             A >> "sd"
         }
 
-        assert grammar.rules == [new Rule(A, v(B)), new Rule(A, t("ε")), new Rule(A, t("sd"))]
+        assert grammar.rules == [new Rule(A, B), new Rule(A, t("ε")), new Rule(A, t("sd"))]
     }
 
     @Test
@@ -90,11 +86,13 @@ class EBNFTest {
             D >> E & (F & G)
         }
 
-        assert grammar.rules == [new Rule(A, new Then(v(B), v(C))),
-                                 new Rule(A, new Then(v(B), v(C))),
-                                 new Rule(D, new Then(v(E), v(F), v(G))),
-                                 new Rule(D, new Then(v(E), v(F), v(G))),
-                                 new Rule(D, new Then(v(E), v(F), v(G)))]
+        assert grammar.rules == [
+                new Rule(A, new Then(B, C)),
+                new Rule(A, new Then(B, C)),
+                new Rule(D, new Then(E, F, G)),
+                new Rule(D, new Then(E, F, G)),
+                new Rule(D, new Then(E, F, G))
+        ]
     }
 
     @Test
@@ -108,12 +106,12 @@ class EBNFTest {
             A >> (B | C | D)
         }
 
-        assert grammar.rules == [new Rule(A, new Or(v(B), v(C))),
-                                 new Rule(A, new Or(v(B), v(C))),
-                                 new Rule(A, new Or(v(B), v(C), v(D))),
-                                 new Rule(A, new Or(v(B), v(C), v(D))),
-                                 new Rule(A, new Or(v(B), v(C), v(D))),
-                                 new Rule(A, new Or(v(B), v(C), v(D)))]
+        assert grammar.rules == [new Rule(A, new Or(B, C)),
+                                 new Rule(A, new Or(B, C)),
+                                 new Rule(A, new Or(B, C, D)),
+                                 new Rule(A, new Or(B, C, D)),
+                                 new Rule(A, new Or(B, C, D)),
+                                 new Rule(A, new Or(B, C, D))]
     }
 
     @Test
@@ -128,13 +126,13 @@ class EBNFTest {
             A >> B & (C | D)
         }
 
-        assert grammar.rules == [new Rule(A, new Or(new Then(v(B), v(C)), v(D))),
-                                 new Rule(A, new Or(v(B), new Then(v(C), v(D)))),
-                                 new Rule(A, new Or(v(B), new Then(v(C), v(D)), v(E))),
-                                 new Rule(A, new Then(new Or(v(B), v(C)), new Or(v(D), v(E)))),
-                                 new Rule(A, new Or(new Then(v(B), v(C)), new Then(v(D), v(E)))),
-                                 new Rule(A, new Then(new Or(v(B), v(C)), v(D))),
-                                 new Rule(A, new Then(v(B), new Or(v(C), v(D))))]
+        assert grammar.rules == [new Rule(A, new Or(new Then(B, C), D)),
+                                 new Rule(A, new Or(B, new Then(C, D))),
+                                 new Rule(A, new Or(B, new Then(C, D), E)),
+                                 new Rule(A, new Then(new Or(B, C), new Or(D, E))),
+                                 new Rule(A, new Or(new Then(B, C), new Then(D, E))),
+                                 new Rule(A, new Then(new Or(B, C), D)),
+                                 new Rule(A, new Then(B, new Or(C, D)))]
     }
 
     @Test
@@ -150,14 +148,14 @@ class EBNFTest {
             A >> {{B} & C}
         }
 
-        assert grammar.rules == [new Rule(A, new Repeated(v(B))),
-                                 new Rule(A, new Repeated(new Or(v(B), v(C)))),
-                                 new Rule(A, new Repeated(new Then(v(B), v(C)))),
-                                 new Rule(A, new Repeated(new Or(new Then(v(B), v(C)), v(D)))),
-                                 new Rule(A, new Then(v(B), new Repeated(v(C)))),
-                                 new Rule(A, new Then(new Repeated(v(B)), v(C))),
-                                 new Rule(A, new Then(new Repeated(v(B)), new Repeated(v(C)))),
-                                 new Rule(A, new Repeated(new Then(new Repeated(v(B)), v(C))))]
+        assert grammar.rules == [new Rule(A, new Repeated(B)),
+                                 new Rule(A, new Repeated(new Or(B, C))),
+                                 new Rule(A, new Repeated(new Then(B, C))),
+                                 new Rule(A, new Repeated(new Or(new Then(B, C), D))),
+                                 new Rule(A, new Then(B, new Repeated(C))),
+                                 new Rule(A, new Then(new Repeated(B), C)),
+                                 new Rule(A, new Then(new Repeated(B), new Repeated(C))),
+                                 new Rule(A, new Repeated(new Then(new Repeated(B), C)))]
     }
 
     @Test
@@ -173,74 +171,78 @@ class EBNFTest {
             A >> [[B] & C]
         }
 
-        assert grammar.rules == [new Rule(A, new Optional(v(B))),
-                                 new Rule(A, new Optional(new Or(v(B), v(C)))),
-                                 new Rule(A, new Optional(new Then(v(B), v(C)))),
-                                 new Rule(A, new Optional(new Or(new Then(v(B), v(C)), v(D)))),
-                                 new Rule(A, new Then(v(B), new Optional(v(C)))),
-                                 new Rule(A, new Then(new Optional(v(B)), v(C))),
-                                 new Rule(A, new Then(new Optional(v(B)), new Optional(v(C)))),
-                                 new Rule(A, new Optional(new Then(new Optional(v(B)), v(C))))]
+        assert grammar.rules == [new Rule(A, new Optional(B)),
+                                 new Rule(A, new Optional(new Or(B, C))),
+                                 new Rule(A, new Optional(new Then(B, C))),
+                                 new Rule(A, new Optional(new Or(new Then(B, C), D))),
+                                 new Rule(A, new Then(B, new Optional(C))),
+                                 new Rule(A, new Then(new Optional(B), C)),
+                                 new Rule(A, new Then(new Optional(B), new Optional(C))),
+                                 new Rule(A, new Optional(new Then(new Optional(B), C)))]
     }
 
     @Test
     void testAdditionalRulePatterns() {
         assert ebnf {
             A >> { B } & C | { D } & "boolean"
-        }.rules == [new Rule(A, new Or(new Then(new Repeated(v(B)), v(C)),
-                new Then(new Repeated(v(D)), t("boolean"))))]
+        }.rules == [new Rule(A, new Or(new Then(new Repeated(B), C),
+                new Then(new Repeated(D), t("boolean"))))]
     }
 
     @Test
     void testString() {
-        EBNF grammar = ebnf {
-            A >> "select"
-            A >> B & "select"
-            A >> B | "select"
-            A >> "select" & B
-            A >> "select" | B
-            A >> "select" & "*" & "from"
-            A >> B & "WHERE" & "[a-b]+"
-            A >> {"S"} | C
-            A >> ["R"] & "F"
-//            A >> ("R" | "E")
-//            A >> ("R" | C)
-//            A >> ("R" | ["E"])
-//            A >> ("R" | [C])
-//            A >> ("R" | {"E"})
-//            A >> ("R" | {C})
-//            A >> ("E" | "R")
-            A >> (C | "R")
-//            A >> (["E"] | "R")
-//            A >> ([C] | "R")
-//            A >> ({"E"} | "R")
-//            A >> ({C} | "R")
-//            A >> ("R" & "E")
-//            A >> ("R" & C)
-//            A >> ("R" & ["E"])
-//            A >> ("R" & [C])
-//            A >> ("R" & {"E"})
-//            A >> ("R" & {C})
-//            A >> ("E" & "R")
-            A >> (C & "R")
-//            A >> (["E"] & "R")
-//            A >> ([C] & "R")
-//            A >> ({"E"} & "R")
-//            A >> ({C} & "R")
-        }
+        use(EBNFExtension) {
+            EBNF grammar = ebnf {
+                A >> "select"
+                A >> B & "select"
+                A >> B | "select"
+                A >> "select" & B
+                A >> "select" | B
+                A >> "select" & "*" & "from"
+                A >> B & "WHERE" & "[a-b]+"
+                A >> {"S"} | C
+                A >> ["R"] & "F"
 
-        assert grammar.rules == [new Rule(A, t("select")),
-                                 new Rule(A, new Then(v(B), t("select"))),
-                                 new Rule(A, new Or(v(B), t("select"))),
-                                 new Rule(A, new Then(t("select"), v(B))),
-                                 new Rule(A, new Or(t("select"), v(B))),
-                                 new Rule(A, new Then(t("select"), t("*"), t("from"))),
-                                 new Rule(A, new Then(v(B), t("WHERE"), t("[a-b]+"))),
-                                 new Rule(A, new Or(new Repeated(t("S")), v(C))),
-                                 new Rule(A, new Then(new Optional(t("R")), t("F"))),
-                                 new Rule(A, new Or(v(C), t("R"))),
-                                 new Rule(A, new Then(v(C), t("R"))),
-        ]
+                //TODO: include also these:
+    //            A >> ("R" | "E")
+    //            A >> ("R" | C)
+    //            A >> ("R" | ["E"])
+    //            A >> ("R" | [C])
+    //            A >> ("R" | {"E"})
+    //            A >> ("R" | {C})
+    //            A >> ("E" | "R")
+                A >> (C | "R")
+    //            A >> (["E"] | "R")
+    //            A >> ([C] | "R")
+    //            A >> ({"E"} | "R")
+    //            A >> ({C} | "R")
+    //            A >> ("R" & "E")
+    //            A >> ("R" & C)
+    //            A >> ("R" & ["E"])
+    //            A >> ("R" & [C])
+    //            A >> ("R" & {"E"})
+    //            A >> ("R" & {C})
+    //            A >> ("E" & "R")
+                A >> (C & "R")
+    //            A >> (["E"] & "R")
+    //            A >> ([C] & "R")
+    //            A >> ({"E"} & "R")
+    //            A >> ({C} & "R")
+            }
+
+            assert grammar.rules == [new Rule(A, t("select")),
+                                     new Rule(A, new Then(B, t("select"))),
+                                     new Rule(A, new Or(B, t("select"))),
+                                     new Rule(A, new Then(t("select"), B)),
+                                     new Rule(A, new Or(t("select"), B)),
+                                     new Rule(A, new Then(t("select"), t("*"), t("from"))),
+                                     new Rule(A, new Then(B, t("WHERE"), t("[a-b]+"))),
+                                     new Rule(A, new Or(new Repeated(t("S")), C)),
+                                     new Rule(A, new Then(new Optional(t("R")), t("F"))),
+                                     new Rule(A, new Or(C, t("R"))),
+                                     new Rule(A, new Then(C, t("R"))),
+            ]
+        }
     }
 
     @Test
@@ -250,8 +252,8 @@ class EBNFTest {
             A >> {B & [C]} & "D"
         }
 
-        assert grammar.rules == [new Rule(A, new Then(new Optional(new Then(v(B), new Repeated(v(C)))), t("D"))),
-                                 new Rule(A, new Then(new Repeated(new Then(v(B), new Optional(v(C)))), t("D")))]
+        assert grammar.rules == [new Rule(A, new Then(new Optional(new Then(B, new Repeated(C))), t("D"))),
+                                 new Rule(A, new Then(new Repeated(new Then(B, new Optional(C))), t("D")))]
     }
 
     @Test
@@ -419,13 +421,13 @@ class EBNFTest {
         ])
     }
 
-    static Map<Variable, Set<Terminal>> materialize(Map<String, List<String>> expected) {
+    static Map<NonTerminal, Set<Terminal>> materialize(Map<String, List<String>> expected) {
         expected.collectEntries {
             v , t -> {
                 [valueOf(v), t.collect {
                     new Terminal(it)
                 }.toSet()]
             }
-        } as Map<Variable, Set<Terminal>>
+        } as Map<NonTerminal, Set<Terminal>>
     }
 }
