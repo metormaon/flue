@@ -106,6 +106,9 @@ class EBNFExtension {
     static Or or(List<Expression> self, String s) {
         new Or(new Optional(self[0]), new Terminal(s))
     }
+
+    static Repeated div(Closure<?> c, String s) { new Repeated(c, new Terminal(s)) }
+
     static Object asType(String s, Class c) {
         if (c == Expression) {
             return new Terminal(s)

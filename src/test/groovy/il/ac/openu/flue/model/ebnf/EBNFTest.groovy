@@ -136,30 +136,34 @@ class EBNFTest {
     }
 
     @Test
-    void testOneOrMore() {
-        EBNF grammar = ebnf {
-            A >> {B}
-            A >> {B | C}
-            A >> {B & C}
-            A >> {B & C | D}
-            A >> B & {C}
-            A >> {B} & C
-            A >> {B} & {C}
-            A >> {{B} & C}
-        }
+    void testRepeated() {
+        use(EBNFExtension) {
+            EBNF grammar = ebnf {
+                A >> {B}
+                A >> {B | C}
+                A >> {B & C}
+                A >> {B & C | D}
+                A >> B & {C}
+                A >> {B} & C
+                A >> {B} & {C}
+                A >> {{B} & C}
+                A >> {B}/"abc" & C
+            }
 
-        assert grammar.rules == [new Rule(A, new Repeated(B)),
-                                 new Rule(A, new Repeated(new Or(B, C))),
-                                 new Rule(A, new Repeated(new Then(B, C))),
-                                 new Rule(A, new Repeated(new Or(new Then(B, C), D))),
-                                 new Rule(A, new Then(B, new Repeated(C))),
-                                 new Rule(A, new Then(new Repeated(B), C)),
-                                 new Rule(A, new Then(new Repeated(B), new Repeated(C))),
-                                 new Rule(A, new Repeated(new Then(new Repeated(B), C)))]
+            assert grammar.rules == [new Rule(A, new Repeated(B)),
+                                     new Rule(A, new Repeated(new Or(B, C))),
+                                     new Rule(A, new Repeated(new Then(B, C))),
+                                     new Rule(A, new Repeated(new Or(new Then(B, C), D))),
+                                     new Rule(A, new Then(B, new Repeated(C))),
+                                     new Rule(A, new Then(new Repeated(B), C)),
+                                     new Rule(A, new Then(new Repeated(B), new Repeated(C))),
+                                     new Rule(A, new Repeated(new Then(new Repeated(B), C))),
+                                     new Rule(A, new Then(new Repeated(B, new Terminal("abc")), C))]
+        }
     }
 
     @Test
-    void testZeroOrOne() {
+    void testOptional() {
         EBNF grammar = ebnf {
             A >> [B]
             A >> [B | C]

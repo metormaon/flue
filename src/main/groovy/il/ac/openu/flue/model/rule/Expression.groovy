@@ -128,8 +128,9 @@ class Optional extends Unary {
 
 @EqualsAndHashCode(callSuper=true)
 class Repeated extends Unary {
-    Repeated(Expression child) { super(child) }
-    Repeated(Closure<?> child) { this(child() as Expression) }
+    Terminal separator
+    Repeated(Expression child, Terminal separator=null) { super(child); this.separator = separator }
+    Repeated(Closure<?> child, Terminal separator=null) { this(child() as Expression); this.separator = separator }
     @Override <T> T accept(Visitor<T> v) { v.visit(this) }
-    @Override String toString() { "{" + child + "}" }
+    @Override String toString() { "{" + child + "}" + separator? "" : "^\"${separator.terminal}\""}
 }

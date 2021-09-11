@@ -51,6 +51,7 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * <li><i>or</i> operator: | (e.g. A | B)</li>
  * <li><i>optional</i>(zero or one): [ ] (e.g. [A | B])</li>
  * <li><i>repeated</i>(zero or more): { } (e.g. {A & B})</li>
+ * <li><i>repeated with separator</i>: {...}/"..." (e.g. {A & B}/",")</li>
  * <li>parentheses to control precedence: ( ) (e.g. (A | B) & C)</li>
  * <p><p>
  * <p><p>How is the following statement processed by the Groovy interpreter?
@@ -73,9 +74,9 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  *
  * <li>Potentially only part of the right statement is already parsed at that moment, because the precedence of
  * the >> operator is higher than &amp; or |, but that is not an issue. The rest of the right statement elements
- * will add themselves to the RawRule object when processed.</li>
+ * will add themselves to the Rule object when processed.</li>
  *
- * <li>The RawRules are created within the scope of the closure, but need to be added to the EBNF instance that
+ * <li>The Rules are created within the scope of the closure, but need to be added to the EBNF instance that
  * represents the grammar, which is not easily accessed within the closure. To solve that challenge, the class uses
  * a {@link ThreadLocal} that holds the EBNF instance while it is populated with rules. The instance is constructed
  * within the scope of the ebnf() static call, then is accessed through the ThreadLocal by the rules closure, which
@@ -83,12 +84,7 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * have their own EBNF instance.</li>
  * </ol><p>
  *
- * The RawRules created while constructing the grammar are suitable for construction time, but not conventient for
- * querying and traversing. The main reason is that to support the neat rule language and defeat precedence issues,
- * for example, Groovy tricks should be used, and the data structure that supports it cannot be immutable and simple.
- * So, once the grammar is fully processed, RawRules are converted into final-form {@link Rule}s.<p>
- * <p>
- * To use EBNF in your file, it is recommended you add static imports to ease the use of your non-terminals and of
+ * To use EBNF in your file, it is recommended that you add static imports to ease the use of your non-terminals and of
  * EBNF itself:<p><p>
  * import static il.ac.openu.flue.model.ebnf.EBNF.ebnf<p>
  * import static yourPackage.yourClass.V.*<p><p>
@@ -103,7 +99,7 @@ class EBNF {
     //End of input terminal. A dollar, but not using the dollar symbol which cannot serve as a constant name
     public static final Terminal ṩ = new Terminal("ṩ")
 
-    //Enpty terminal. Epsilon.
+    //Empty terminal. Epsilon.
     public static final Terminal ε = new Terminal("ε")
 
     //No direct construction of grammars
@@ -112,11 +108,13 @@ class EBNF {
     //Root rule = start rule
     NonTerminal root
 
-//////    //Construction-time rules
-//////    private Set<Rule> rawRules = []
-
     List<Rule> rules = []
-    Map<NonTerminal, List<Rule>> ruleMap
+
+    //For algorithmic convenience, we keep also a map from non-terminal to all of its resolving rules
+    @Lazy
+    Map<NonTerminal, List<Rule>> ruleMap = rules.groupBy {
+        it.nonTerminal
+    }
 
     /**
      * Grammar factory. Creates an EBNF instance by parsing the rules in the closure. Finds the root by itself.
@@ -171,24 +169,7 @@ class EBNF {
             //Clean the ThreadLocal for this thread. We are done with it
             context.remove()
 
-            //Convert the rules to final-form.
-            ebnf.transformRules()
-
             ebnf
-        }
-    }
-
-    /**
-     * Converting the RawRule instances into final-form Rule objects. All it means is transforming the expression
-     * composite into a manageable composite.
-     */
-    private void transformRules() {
-////////        //Convert expression composites into a simple, useful composite
-////////        rules = rawRules.collect { new Rule(it.variable, it.expression()) }
-
-        //For algorithmic convenience, create also a map from non-terminal to all of its resolving rules
-        ruleMap = rules.groupBy {
-            it.nonTerminal
         }
     }
 
