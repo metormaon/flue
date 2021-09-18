@@ -84,4 +84,10 @@ class ExpressionTest extends Specification {
             new Optional(A)     | new Optional(B)   | false
             new Optional(A)     | A                 | false
     }
+
+    def "testToString"() {
+        expect:
+            new Or(A, new Optional(new Then(new Terminal(","), A))).toString() == "(A)|([(\",\")&(A)])"
+            new Or(A, new Repeated(new Then(new Terminal(","), A))).toString() == "(A)|({(\",\")&(A)})"
+    }
 }
