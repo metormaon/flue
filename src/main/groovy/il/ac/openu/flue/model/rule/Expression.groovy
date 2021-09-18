@@ -4,6 +4,8 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.SelfType
 import il.ac.openu.flue.model.ebnf.EBNF
 
+import java.util.regex.Pattern
+
 /**
  * @author Noam Rotem
  */
@@ -22,6 +24,7 @@ trait Expression {
     Or or(Closure<?> c) { new Or(this, new Repeated(c)) }
     Or or(List<?> l) { new Or(this, new Optional(l)) }
     Or or(String s) { new Or(this, new Terminal(s)) }
+    Or or(Pattern p) { new Or(this, new Terminal(p)) }
 
     Then and(Expression e) {
         List<Expression> children = []
@@ -37,6 +40,7 @@ trait Expression {
     Then and(Closure<?> c) { new Then(this, new Repeated(c)) }
     Then and(List<?> l) { new Then(this, new Optional(l)) }
     Then and(String s) { new Then(this, new Terminal(s)) }
+    Then and(Pattern p) { new Then(this, new Terminal(p)) }
 
     abstract <T> T accept(Visitor<T> v)
 
@@ -79,9 +83,12 @@ class Terminal implements Expression {
     @SuppressWarnings('NonAsciiCharacters')
     public static final Terminal ε = new Terminal("ε")
     String terminal
-    Terminal(String terminal) { this.terminal = terminal }
+    boolean pattern
+    Terminal(String terminal, boolean isPattern) { this.terminal = terminal; pattern = isPattern }
+    Terminal(String terminal) { this(terminal, false) }
+    Terminal(Pattern pattern) { this(pattern.pattern(), true) }
     @Override <T> T accept(Visitor<T> v) { v.visit(this) }
-    @Override String toString() { "\"" + terminal + "\"" }
+    @Override String toString() { (pattern? "~" : "" ) + "\"" + terminal + "\"" }
 }
 
 @EqualsAndHashCode
@@ -90,6 +97,7 @@ trait NonTerminal implements Labeled, Expression {
     Rule rightShift(List<?> l) { EBNF.add(new Rule(this, new Optional(l))) }
     Rule rightShift(Closure<?> c) { EBNF.add(new Rule(this, new Repeated(c))) }
     Rule rightShift(String s) { EBNF.add(new Rule(this, new Terminal(s))) }
+    Rule rightShift(Pattern p) { EBNF.add(new Rule(this, new Terminal(p))) }
     @Override <T> T accept(Visitor<T> v) { v.visit(this) }
 }
 
@@ -101,6 +109,7 @@ class Or extends Multinary {
     @Override Or or(Closure<?> c) { children.add(new Repeated(c)); this }
     @Override Or or(List<?> l) { children.add(new Optional(l)); this }
     @Override Or or(String s) { children.add(new Terminal(s)); this }
+    @Override Or or(Pattern p) { children.add(new Terminal(p)); this }
     @Override <T> T accept(Visitor<T> v) { v.visit(this) }
     @Override String toString() { "(" + children.join(")|(") + ")" }
 }
@@ -113,6 +122,7 @@ class Then extends Multinary {
     @Override Then and(Closure<?> c) { children.add(new Repeated(c)); this }
     @Override Then and(List<?> l) { children.add(new Optional(l)); this }
     @Override Then and(String s) { children.add(new Terminal(s)); this }
+    @Override Then and(Pattern p) { children.add(new Terminal(p)); this }
     @Override <T> T accept(Visitor<T> v) { v.visit(this) }
     @Override
     String toString() { "(" + children.join(")&(") + ")" }

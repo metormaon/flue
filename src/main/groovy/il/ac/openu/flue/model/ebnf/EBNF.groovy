@@ -47,6 +47,7 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * <i>expression</i> is made of the following elements and operators:<p>
  * <li>NonTerminal (e.g. A)</li>
  * <li>Terminal (e.g. "." or "class")</li>
+ * <li>Pattern-Terminal (e.g. ~"[a-zA-Z]+" or "int|float|double")</li>
  * <li><i>and-then</i> operator: &amp; (e.g. A &amp; ".")</li>
  * <li><i>or</i> operator: | (e.g. A | B)</li>
  * <li><i>optional</i>(zero or one): [ ] (e.g. [A | B])</li>

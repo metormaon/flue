@@ -26,6 +26,10 @@ class EBNFTest {
         new Terminal(s)
     }
 
+    static def t(String s, boolean pattern) {
+        new Terminal(s,pattern)
+    }
+
     @Test
     void testRoot() {
         assert ebnf (A) {
@@ -71,9 +75,15 @@ class EBNFTest {
             A >> B
             A >> ε
             A >> "sd"
+            A >> ~"sd"
         }
 
-        assert grammar.rules == [new Rule(A, B), new Rule(A, t("ε")), new Rule(A, t("sd"))]
+        assert grammar.rules == [
+                new Rule(A, B),
+                new Rule(A, t("ε")),
+                new Rule(A, t("sd")),
+                new Rule(A, t("sd", true))
+        ]
     }
 
     @Test

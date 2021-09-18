@@ -62,9 +62,9 @@ class JavaEbnf {
 
                 IdentifierChars >> JavaLetter & { JavaLetterOrDigit }
 
-                JavaLetter >> "[A-Za-z]"
+                JavaLetter >> ~"[A-Za-z]"
 
-                JavaLetterOrDigit >> "[A-Za-z0-9_]"
+                JavaLetterOrDigit >> ~"[A-Za-z0-9_]"
 
                 TypeIdentifier >> Identifier
 
