@@ -89,5 +89,13 @@ class ExpressionTest extends Specification {
         expect:
             new Or(A, new Optional(new Then(new Terminal(","), A))).toString() == "(A)|([(\",\")&(A)])"
             new Or(A, new Repeated(new Then(new Terminal(","), A))).toString() == "(A)|({(\",\")&(A)})"
+            new Or(A, new Repeated(new Then(new Terminal(","), A), null, true)).toString()
+                    == "(A)|(+{(\",\")&(A)})"
+
+            new Or(A, new Repeated(new Then(new Terminal(","), A), new Terminal(":"))).toString()
+                    == "(A)|({(\",\")&(A)}/\":\")"
+
+            new Or(A, new Repeated(new Then(new Terminal(","), A), new Terminal(":"),
+                    true)).toString() == "(A)|(+{(\",\")&(A)}/\":\")"
     }
 }

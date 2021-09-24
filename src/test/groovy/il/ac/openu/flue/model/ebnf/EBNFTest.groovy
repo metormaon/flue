@@ -158,17 +158,21 @@ class EBNFTest {
                 A >> {B} & {C}
                 A >> {{B} & C}
                 A >> {B}/"abc" & C
+                A >> +{B} & C
             }
 
-            assert grammar.rules == [new Rule(A, new Repeated(B)),
-                                     new Rule(A, new Repeated(new Or(B, C))),
-                                     new Rule(A, new Repeated(new Then(B, C))),
-                                     new Rule(A, new Repeated(new Or(new Then(B, C), D))),
-                                     new Rule(A, new Then(B, new Repeated(C))),
-                                     new Rule(A, new Then(new Repeated(B), C)),
-                                     new Rule(A, new Then(new Repeated(B), new Repeated(C))),
-                                     new Rule(A, new Repeated(new Then(new Repeated(B), C))),
-                                     new Rule(A, new Then(new Repeated(B, new Terminal("abc")), C))]
+            assert grammar.rules == [
+                    new Rule(A, new Repeated(B)),
+                    new Rule(A, new Repeated(new Or(B, C))),
+                    new Rule(A, new Repeated(new Then(B, C))),
+                    new Rule(A, new Repeated(new Or(new Then(B, C), D))),
+                    new Rule(A, new Then(B, new Repeated(C))),
+                    new Rule(A, new Then(new Repeated(B), C)),
+                    new Rule(A, new Then(new Repeated(B), new Repeated(C))),
+                    new Rule(A, new Repeated(new Then(new Repeated(B), C))),
+                    new Rule(A, new Then(new Repeated(B, new Terminal("abc")), C)),
+                    new Rule(A, new Then(new Repeated(B, null, true), C))
+            ]
         }
     }
 

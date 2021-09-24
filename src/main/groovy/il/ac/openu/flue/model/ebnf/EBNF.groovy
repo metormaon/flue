@@ -52,6 +52,7 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * <li><i>or</i> operator: | (e.g. A | B)</li>
  * <li><i>optional</i>(zero or one): [ ] (e.g. [A | B])</li>
  * <li><i>repeated</i>(zero or more): { } (e.g. {A & B})</li>
+ * <li><i>repeated</i>(one or more): +{ } (e.g. +{A & B})</li>
  * <li><i>repeated with separator</i>: {...}/"..." (e.g. {A & B}/",")</li>
  * <li>parentheses to control precedence: ( ) (e.g. (A | B) & C)</li>
  * <p><p>

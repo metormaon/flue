@@ -6,6 +6,7 @@ import il.ac.openu.flue.model.rule.Or
 import il.ac.openu.flue.model.rule.Repeated
 import il.ac.openu.flue.model.rule.Terminal
 import il.ac.openu.flue.model.rule.Then
+import il.ac.openu.flue.model.rule.assist.AtLeastOneClosure
 
 import java.util.regex.Pattern
 
@@ -157,7 +158,9 @@ class EBNFExtension {
         new Or(new Optional(self[0]), new Terminal(p))
     }
 
-    static Repeated div(Closure<?> c, String s) { new Repeated(c, new Terminal(s)) }
+    static Repeated div(Closure<?> c, String s) { new Repeated(c, new Terminal(s), c instanceof AtLeastOneClosure ) }
+
+    static Closure<Expression> positive(Closure<?> c) { new AtLeastOneClosure(c) }
 
     static Object asType(String s, Class c) {
         if (c == Expression) {
