@@ -124,6 +124,7 @@ class EBNF {
     static EBNF ebnf(Closure c) {
         EBNF ebnf = process c
         ebnf.root = ebnf.findRoot()
+
         ebnf
     }
 
@@ -145,9 +146,9 @@ class EBNF {
                     "Wrap with ebnf { }.")
         }
 
-        if (context.get().rules.empty) {
-            context.get().root = r.nonTerminal
-        }
+//        if (context.get().rules.empty) {
+//            context.get().root = r.nonTerminal
+//        }
 
         context.get().rules += r
         r
@@ -160,19 +161,16 @@ class EBNF {
         //A new EBNF instance is set to the ThreadLocal
         context.set(new EBNF())
 
-        //With rule operators redefined in an extension class
-        use(EBNFExtension) {
-            //Execute the closure (it will parse rules and add them to EBNF instance
-            c()
+        //Execute the closure (it will parse rules and add them to EBNF instance
+        c()
 
-            //Grab the instance from the ThreadLocal
-            EBNF ebnf = context.get()
+        //Grab the instance from the ThreadLocal
+        EBNF ebnf = context.get()
 
-            //Clean the ThreadLocal for this thread. We are done with it
-            context.remove()
+        //Clean the ThreadLocal for this thread. We are done with it
+        context.remove()
 
-            ebnf
-        }
+        ebnf
     }
 
     /**

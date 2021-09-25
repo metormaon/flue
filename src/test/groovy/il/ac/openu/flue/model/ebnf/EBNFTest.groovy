@@ -11,6 +11,8 @@ import il.ac.openu.flue.model.rule.Then
 import org.junit.jupiter.api.Test
 
 import static groovy.test.GroovyAssert.shouldFail
+import static il.ac.openu.flue.JavaEbnf.V.TypeArgument
+import static il.ac.openu.flue.JavaEbnf.V.TypeArgumentList
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 import static il.ac.openu.flue.model.ebnf.EBNFTest.V.*
 import static il.ac.openu.flue.model.rule.Expression.Visitor
@@ -158,20 +160,22 @@ class EBNFTest {
                 A >> {B} & {C}
                 A >> {{B} & C}
                 A >> {B}/"abc" & C
+                A >> +{B}/"abc"
                 A >> +{B} & C
             }
 
             assert grammar.rules == [
-                    new Rule(A, new Repeated(B)),
-                    new Rule(A, new Repeated(new Or(B, C))),
-                    new Rule(A, new Repeated(new Then(B, C))),
-                    new Rule(A, new Repeated(new Or(new Then(B, C), D))),
-                    new Rule(A, new Then(B, new Repeated(C))),
-                    new Rule(A, new Then(new Repeated(B), C)),
-                    new Rule(A, new Then(new Repeated(B), new Repeated(C))),
-                    new Rule(A, new Repeated(new Then(new Repeated(B), C))),
-                    new Rule(A, new Then(new Repeated(B, new Terminal("abc")), C)),
-                    new Rule(A, new Then(new Repeated(B, null, true), C))
+                new Rule(A, new Repeated(B)),
+                new Rule(A, new Repeated(new Or(B, C))),
+                new Rule(A, new Repeated(new Then(B, C))),
+                new Rule(A, new Repeated(new Or(new Then(B, C), D))),
+                new Rule(A, new Then(B, new Repeated(C))),
+                new Rule(A, new Then(new Repeated(B), C)),
+                new Rule(A, new Then(new Repeated(B), new Repeated(C))),
+                new Rule(A, new Repeated(new Then(new Repeated(B), C))),
+                new Rule(A, new Then(new Repeated(B, new Terminal("abc")), C)),
+                new Rule(A, new Repeated(B, new Terminal("abc"), true)),
+                new Rule(A, new Then(new Repeated(B, null, true), C))
             ]
         }
     }

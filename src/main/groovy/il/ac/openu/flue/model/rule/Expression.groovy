@@ -94,6 +94,7 @@ class Terminal implements Expression {
 
 @EqualsAndHashCode
 trait NonTerminal implements Labeled, Expression {
+    Rule rightShift(Repeated e) { EBNF.add(new Rule(this, e)) }
     Rule rightShift(Expression e) { EBNF.add(new Rule(this, e)) }
     Rule rightShift(List<?> l) { EBNF.add(new Rule(this, new Optional(l))) }
     Rule rightShift(Closure<?> c) { EBNF.add(new Rule(this, new Repeated(c,null, c instanceof AtLeastOneClosure))) }
