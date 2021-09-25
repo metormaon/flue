@@ -6,42 +6,17 @@ import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
 import il.ac.openu.flue.model.rule.*
 import spock.lang.Specification
 
-import static il.ac.openu.flue.JavaEbnf.V.CaseConstant
-import static il.ac.openu.flue.JavaEbnf.V.CaseConstant
-import static il.ac.openu.flue.JavaEbnf.V.ElementValuePair
-import static il.ac.openu.flue.JavaEbnf.V.ElementValuePair
-import static il.ac.openu.flue.JavaEbnf.V.ElementValuePairList
-import static il.ac.openu.flue.JavaEbnf.V.Expression
-import static il.ac.openu.flue.JavaEbnf.V.Identifier
-import static il.ac.openu.flue.JavaEbnf.V.Identifier
-import static il.ac.openu.flue.JavaEbnf.V.LambdaParameter
-import static il.ac.openu.flue.JavaEbnf.V.LambdaParameter
-import static il.ac.openu.flue.JavaEbnf.V.LambdaParameterList
-import static il.ac.openu.flue.JavaEbnf.V.ModuleDirective
-import static il.ac.openu.flue.JavaEbnf.V.ModuleName
-import static il.ac.openu.flue.JavaEbnf.V.ModuleName
-import static il.ac.openu.flue.JavaEbnf.V.ModuleName
-import static il.ac.openu.flue.JavaEbnf.V.ModuleName
-import static il.ac.openu.flue.JavaEbnf.V.ModuleName
-import static il.ac.openu.flue.JavaEbnf.V.PackageName
-import static il.ac.openu.flue.JavaEbnf.V.PackageName
-import static il.ac.openu.flue.JavaEbnf.V.RequiresModifier
-import static il.ac.openu.flue.JavaEbnf.V.SwitchLabel
-import static il.ac.openu.flue.JavaEbnf.V.TypeArgument
-import static il.ac.openu.flue.JavaEbnf.V.TypeArgumentList
-import static il.ac.openu.flue.JavaEbnf.V.TypeName
-import static il.ac.openu.flue.JavaEbnf.V.TypeName
-import static il.ac.openu.flue.JavaEbnf.V.TypeName
-import static il.ac.openu.flue.JavaEbnf.V.TypeName
+import static il.ac.openu.flue.JavaEbnf.V.*
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
-import static il.ac.openu.flue.model.util.ExPath.*
+import static il.ac.openu.flue.model.util.ExPath.PathMultinaryNode
+import static il.ac.openu.flue.model.util.ExPath.PathNode
 import static il.ac.openu.flue.model.util.ExPathTest.NT.*
 
 /**
  * @author Noam Rotem
  */
 class ExPathTest extends Specification {
-    enum NT implements NonTerminal {A,B,C}
+    enum NT implements NonTerminal {A,B,C,D}
 
     def "Test toString"(ExPath exPath, String expectedString) {
         expect:
@@ -74,13 +49,17 @@ class ExPathTest extends Specification {
             "a" & "a"           |   {it instanceof Terminal && it.terminal == "a"}     |   "*/&0/'a' ; */&1/'a'"
             "a" & {B | "a"}     |   {it instanceof Terminal && it.terminal == "a"}     |   "*/&0/'a' ; */&1/{}/|1/'a'"
 
-        "a" & {B | "a"}     |   {
+           "a" & {B | "a"}     |   {
                 it instanceof Or && {
                     Or o = it as Or
                     o.children.size() == 2 && o.children[1] instanceof Terminal
                             && (o.children[1] as Terminal).terminal == "a"
                 }
             }                                                                          |   "*/&1/{}/`(B)|(\"a\")`"
+    }
+
+    static class PatternChildInfo {
+        int firstChildInPattern
     }
 
     def "Test on java rules"() {
@@ -101,35 +80,40 @@ class ExPathTest extends Specification {
                     LambdaParameterList >> LambdaParameter & { "," & LambdaParameter }
                             | Identifier & { "," & Identifier }
 
-                    A >> (B | C) & { "," & (B | C)}
+                    A >> (B | C) & {"," & (B | C)}
+
+                    A >> B & {"," & B} & C & {":" & C} & D
                 }
             }
 
 //            EBNF polishedLanguage = use (EBNFExtension) {
 //                ebnf {
-//                    TypeArgumentList >> TypeArgument & {TypeArgument}/","
+//                    TypeArgumentList >> +{TypeArgument}/","
 //
 //                    ModuleDirective >> "requires" & { RequiresModifier } & ModuleName & ";"
 //                            | "exports" & PackageName & ["to" & ModuleName & {ModuleName}/","] & ";"
 //                            | "opens" & PackageName & ["to" & ModuleName & {ModuleName}/","] & ";"
 //                            | "uses" & TypeName & ";"
-//                            | "provides" & TypeName & "with" & TypeName & {TypeName}/"," & ";"
+//                            | "provides" & TypeName & "with" & TypeName & +{TypeName}/"," & ";"
 //
-//                    SwitchLabel >> "case" & CaseConstant & {CaseConstant}/","
+//                    SwitchLabel >> "case" & CaseConstant & +{CaseConstant}/","
 //                            | "default"
 //
 //                    LambdaParameterList >> LambdaParameter & {LambdaParameter}/","
-//                            | Identifier & {Identifier}/","
+//                            | Identifier & +{Identifier}/","
 //
-//                    A >> (B | C) & {(B | C)}/","
+//                    A >> (B | C) & +{(B | C)}/","
+//
+//                    A >> +{B}/"," & +{C}/":" & D
 //                }
 //            }
 
-            Closure<Boolean> matchRepeatedWithSeparator = {Expression e ->
-                Boolean result = false
+            Closure<PatternChildInfo> matchRepeatedWithSeparator = {Expression e ->
+                PatternChildInfo result = null
+
                 if (e instanceof Then) {
                     e.children.eachWithIndex{ Expression entry, int i ->
-                        if (i + 1 < e.children.size() && e.children[i+1] instanceof Repeated) {
+                        if (!result && i + 1 < e.children.size() && e.children[i+1] instanceof Repeated) {
                             Expression expression = e.children[i]
                             Repeated repeated = e.children[i+1] as Repeated
 
@@ -139,7 +123,7 @@ class ExPathTest extends Specification {
                                 if (repeatedThen.children.size() == 2 &&
                                         repeatedThen.children[0] instanceof Terminal &&
                                         repeatedThen.children[1] == expression) {
-                                    result = true
+                                    result = new PatternChildInfo(firstChildInPattern: i)
                                 }
                             }
                         }
@@ -169,29 +153,36 @@ class ExPathTest extends Specification {
             ruleExPath.path[1].expression instanceof Then
 
             findings.toString() == "[" +
-                        "TypeArgumentList >> (TypeArgument)&({(\",\")&(TypeArgument)}):" +
-                            "[*/`(TypeArgument)&({(\",\")&(TypeArgument)})`], " +
+                "TypeArgumentList >> (TypeArgument)&({(\",\")&(TypeArgument)}):" +
+                    "[*/`(TypeArgument)&({(\",\")&(TypeArgument)})`], " +
 
-                        "ModuleDirective >> ((\"requires\")&({RequiresModifier})&(ModuleName)&(\";\"))" +
-                                    "|((\"exports\")&(PackageName)&([(\"to\")&(ModuleName)&({(\",\")&(ModuleName)})])&(\";\"))" +
-                                    "|((\"opens\")&(PackageName)&([(\"to\")&(ModuleName)&({(\",\")&(ModuleName)})])&(\";\"))" +
-                                    "|((\"uses\")&(TypeName)&(\";\"))|((\"provides\")&(TypeName)&(\"with\")&(TypeName)&({(\",\")&(TypeName)})&(\";\")):" +
-                            "[" +
-                                "*/|1/&2/[]/`(\"to\")&(ModuleName)&({(\",\")&(ModuleName)})`, " +
-                                "*/|2/&2/[]/`(\"to\")&(ModuleName)&({(\",\")&(ModuleName)})`, " +
-                                "*/|4/`(\"provides\")&(TypeName)&(\"with\")&(TypeName)&({(\",\")&(TypeName)})&(\";\")`" +
-                            "], " +
+                "ModuleDirective >> ((\"requires\")&({RequiresModifier})&(ModuleName)&(\";\"))" +
+                            "|((\"exports\")&(PackageName)&([(\"to\")&(ModuleName)&({(\",\")&(ModuleName)})])&(\";\"))" +
+                            "|((\"opens\")&(PackageName)&([(\"to\")&(ModuleName)&({(\",\")&(ModuleName)})])&(\";\"))" +
+                            "|((\"uses\")&(TypeName)&(\";\"))|((\"provides\")&(TypeName)&(\"with\")&(TypeName)&({(\",\")&(TypeName)})&(\";\")):" +
+                    "[" +
+                        "*/|1/&2/[]/`(\"to\")&(ModuleName)&({(\",\")&(ModuleName)})`, " +
+                        "*/|2/&2/[]/`(\"to\")&(ModuleName)&({(\",\")&(ModuleName)})`, " +
+                        "*/|4/`(\"provides\")&(TypeName)&(\"with\")&(TypeName)&({(\",\")&(TypeName)})&(\";\")`" +
+                    "], " +
 
-                        "SwitchLabel >> ((\"case\")&(CaseConstant)&({(\",\")&(CaseConstant)}))|(\"default\"):" +
-                            "[*/|0/`(\"case\")&(CaseConstant)&({(\",\")&(CaseConstant)})`], " +
+                "SwitchLabel >> ((\"case\")&(CaseConstant)&({(\",\")&(CaseConstant)}))|(\"default\"):" +
+                    "[*/|0/`(\"case\")&(CaseConstant)&({(\",\")&(CaseConstant)})`], " +
 
-                        "LambdaParameterList >> ((LambdaParameter)&({(\",\")&(LambdaParameter)}))|((Identifier)&({(\",\")&(Identifier)})):" +
-                            "[" +
-                                "*/|0/`(LambdaParameter)&({(\",\")&(LambdaParameter)})`, " +
-                                "*/|1/`(Identifier)&({(\",\")&(Identifier)})`" +
-                            "], " +
+                "LambdaParameterList >> ((LambdaParameter)&({(\",\")&(LambdaParameter)}))|((Identifier)&({(\",\")&(Identifier)})):" +
+                    "[" +
+                        "*/|0/`(LambdaParameter)&({(\",\")&(LambdaParameter)})`, " +
+                        "*/|1/`(Identifier)&({(\",\")&(Identifier)})`" +
+                    "], " +
 
-                        "A >> ((B)|(C))&({(\",\")&((B)|(C))}):" +
-                            "[*/`((B)|(C))&({(\",\")&((B)|(C))})`]]"
+                "A >> ((B)|(C))&({(\",\")&((B)|(C))}):" +
+                    "[*/`((B)|(C))&({(\",\")&((B)|(C))})`], " +
+
+                "A >> (B)&({(\",\")&(B)})&(C)&({(\":\")&(C)})&(D):" +
+                    "[" +
+                        "*/`(B)&({(\",\")&(B)})&(C)&({(\":\")&(C)})&(D)`" +
+                        //TODO: uncomment once matchFirst is supported and used: ", */`(B)&({(\",\")&(B)})&(C)&({(\":\")&(C)})&(D)`, " +
+                    "]" +
+            "]"
     }
 }
