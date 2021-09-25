@@ -55,9 +55,9 @@ class JavaEbnf {
     UnaryExpression, UnaryExpressionNotPlusMinus, PostfixExpression, CastExpression, SwitchExpression,
     ConstantExpression, PrimitiveType1}
 
-    static void main(String[] args) {
-        use(EBNFExtension) {
-            EBNF java = ebnf {
+    static EBNF grammar() {
+        ebnf {
+            use(EBNFExtension) {
                 Identifier >> IdentifierChars
 
                 IdentifierChars >> JavaLetter & { JavaLetterOrDigit }
@@ -713,9 +713,14 @@ class JavaEbnf {
 
                 ConstantExpression >> Expression
             }
-
-            println(java.entryPoints())
-            println(java.cycles().join("\n"))
         }
+    }
+
+    static void main(String[] args) {
+        EBNF java = grammar()
+
+        println(java.entryPoints())
+        println(java.cycles().join("\n"))
+        println(java.rules.size())
     }
 }

@@ -1,5 +1,6 @@
 package il.ac.openu.flue.model.util
 
+import il.ac.openu.flue.JavaEbnf
 import il.ac.openu.flue.model.ebnf.EBNF
 import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
 import il.ac.openu.flue.model.rule.*
@@ -191,8 +192,7 @@ class ExPathUsageTest {
                             Multinary parentExpression = multinaryParent.expression as Multinary
                             parentExpression.children[multinaryParent.positionOfNext] = repeated
                         } else { //unary
-                            ExPath.PathNode pathNode = parent as ExPath.PathNode
-                            Unary parentExpression = pathNode.expression as Unary
+                            Unary parentExpression = parent.expression as Unary
                             parentExpression.child = repeated
                         }
                     }
@@ -205,5 +205,72 @@ class ExPathUsageTest {
         }
 
         assert language.rules  == transformedLanguage.rules
+    }
+
+    @Test
+    void testInlining() {
+        EBNF java = JavaEbnf.grammar()
+
+        Map<NonTerminal, Set<NonTerminal>> graph = java.nonTerminalGraph()
+
+        Set<NonTerminal> cyclicNonTerminals = java.cycles(graph).flatten() as Set<NonTerminal>
+
+        Set<NonTerminal> nonCyclicNonTerminals = graph.keySet() - cyclicNonTerminals
+
+        Closure<Boolean> matchInlineableNonTerminal = {Expression e ->
+            if (e instanceof NonTerminal && e in nonCyclicNonTerminals) {
+                Boolean.TRUE
+            } else {
+                null
+            }
+        }
+
+        language.rules.each{ Rule r ->
+            boolean active = true
+
+            while(active) {
+                List<ExPath> exPaths = ExPath.match(r.definition, matchInlineableNonTerminal)
+
+                if(exPaths) {
+                    ExPath<?> exPath = exPaths[0]
+                    NonTerminal nonTerminal = exPath.path.last().expression as NonTerminal
+
+                    Set<Rule> rules = java.ruleMap.get(nonTerminal)
+
+                    if (rules) {
+                        Expression inlined
+
+                        if (rules.size() > 1) {
+                            inlined = new Or(rules.collect{it.definition})
+                        } else {
+                            inlined = rules[0].definition
+                        }
+
+                        //If the path includes the parent, we need to update the parent
+                        if (exPath.path.size() > 1) {
+                            ExPath.PathNode parent = exPath.path[exPath.path.size() - 2]
+
+                            if (parent instanceof ExPath.PathMultinaryNode) {
+                                ExPath.PathMultinaryNode multinaryParent = parent as ExPath.PathMultinaryNode
+                                Multinary parentExpression = multinaryParent.expression as Multinary
+                                parentExpression.children[multinaryParent.positionOfNext] = inlined
+                            } else { //unary
+                                Unary parentExpression = parent.expression as Unary
+                                parentExpression.child = inlined
+                            }
+                        } else {
+                            r.definition = inlined
+                        }
+                    } else active = false
+                } else active = false
+            }
+        }
+
+        java.ruleMap.removeAll {it.key in nonCyclicNonTerminals}
+
+        java.rules = java.ruleMap.entrySet().collect { it.value.flatten()} as List<Rule>
+
+        println(java.rules.join("\n"))
+        println(java.rules.size())
     }
 }
