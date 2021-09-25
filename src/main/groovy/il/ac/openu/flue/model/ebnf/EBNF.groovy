@@ -3,7 +3,6 @@ package il.ac.openu.flue.model.ebnf
 
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
-import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
 import il.ac.openu.flue.model.rule.Expression
 import il.ac.openu.flue.model.rule.NonTerminal
 import il.ac.openu.flue.model.rule.Optional
@@ -174,12 +173,10 @@ class EBNF {
     }
 
     /**
-     * A method for automatically finding the root of a grammar, i.e. - it's entry rule
+     *  Generates a graph of non terminals - a map from each non terminal to a set of all the
+     *  non-terminals its definitions refer to
      */
-    private NonTerminal findRoot() {
-        List<NonTerminal> definedNonTerminals = []
-        Set<NonTerminal> referredNonTerminals = []
-
+    Map<NonTerminal, Set<NonTerminal>> nonTerminalGraph() {
         //A visitor that goes through expressions and detects referred-to non-terminals
         Visitor<Set<NonTerminal>> referredNonTerminalVisitor = new Visitor<Set<NonTerminal>>() {
             @Override Set<NonTerminal> visit(Then then) { then.children.inject([].toSet())
@@ -192,22 +189,103 @@ class EBNF {
             @Override Set<NonTerminal> visit(Terminal terminal) { [].toSet() as Set<NonTerminal> }
         }
 
+        Map<NonTerminal, Set<NonTerminal>> graph = [:]
+
         //Visit all rules Find all defined non-terminals and all referred to non-terminals
         rules.forEach(r -> {
-            definedNonTerminals += r.nonTerminal
-            referredNonTerminals += r.definition.accept(referredNonTerminalVisitor)
+            graph.merge(r.nonTerminal, r.definition.accept(referredNonTerminalVisitor),
+                    (Set<Terminal> oldFirst, Set<Terminal> newFirst) -> oldFirst + newFirst
+            )
         })
 
-        //Calculate root candidates - defined but not referred-to non-terminals
-        List<NonTerminal> rootNonTerminals = definedNonTerminals - referredNonTerminals
+        graph
+    }
 
-        if (rootNonTerminals.isEmpty()) {
-            throw new IllegalArgumentException("No entry rule was detected")
-        } else {
+    /**
+     * A method for finding the non-referred to non terminals of the grammar
+     */
+    Set<NonTerminal> entryPoints(Map<NonTerminal, Set<NonTerminal>> graph = nonTerminalGraph()) {
+        Set<NonTerminal> definedNonTerminals = graph.keySet()
+        Set<NonTerminal> referredNonTerminals = graph.values().flatten() as Set<NonTerminal>
+
+        //The entry points are those non-terminals that are defined but not referred-to
+        definedNonTerminals - referredNonTerminals
+    }
+
+    /**
+     * A method for automatically finding the root of a grammar, i.e. - it's entry rule
+     */
+    private NonTerminal findRoot() {
+        Set<NonTerminal> entryPoints = entryPoints()
+
+        if (entryPoints) {
             //Returns an arbitrary root candidate
-            rootNonTerminals[0]
+            entryPoints[0]
+        } else {
+            throw new IllegalArgumentException("No entry rule was detected")
         }
     }
+
+    private enum VisitStatus {NOT_VISITED, IN_STACK, VISITED}
+
+    /**
+     * A method for detecting cycles in the grammar. The detection is done with the DFS algorithm.
+     */
+    Set<List<NonTerminal>> cycles(Map<NonTerminal, Set<NonTerminal>> graph = nonTerminalGraph()) {
+        Map<NonTerminal, VisitStatus> statuses =
+                graph.keySet().collectEntries {key -> [key, VisitStatus.NOT_VISITED]}
+        List<NonTerminal> stack
+        Set<List<NonTerminal>> cycles = []
+
+        graph.keySet().each {
+            if (statuses[it] == VisitStatus.NOT_VISITED) {
+                stack = [it]
+                statuses[it] = VisitStatus.IN_STACK
+                cycles += dfs(graph, stack, statuses)
+            }
+        }
+
+        cycles
+    }
+
+    private static Set<List<NonTerminal>> dfs(Map<NonTerminal, Set<NonTerminal>> graph, ArrayList<NonTerminal> stack,
+                                              Map<NonTerminal, VisitStatus> statuses) {
+        Set<List<NonTerminal>> cycles = []
+
+        NonTerminal stackTop = stack.first()
+        graph[stackTop].each {
+            if (statuses[it] == VisitStatus.IN_STACK) {
+                cycles << calculateCycle(stack, it)
+            } else if (statuses[it] == VisitStatus.NOT_VISITED) {
+                stack.push it
+                statuses[it] = VisitStatus.IN_STACK
+                cycles += dfs(graph, stack, statuses)
+            }
+        }
+
+        statuses[stackTop] = VisitStatus.VISITED
+        stack.pop()
+
+        cycles
+    }
+
+    private static List<NonTerminal> calculateCycle(ArrayList<NonTerminal> stack, NonTerminal current) {
+        List<NonTerminal> cycle = []
+
+        List<NonTerminal> tempStack = [stack.pop()]
+
+        while (tempStack.first() != current) {
+            tempStack.push(stack.pop())
+        }
+
+        while (tempStack) {
+            cycle << tempStack.first()
+            stack.push(tempStack.pop())
+        }
+
+        cycle
+    }
+
 
     /**
      * A method for finding all rules that comply with a certain filter. The rule function is a closure that accepts

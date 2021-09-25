@@ -11,8 +11,6 @@ import il.ac.openu.flue.model.rule.Then
 import org.junit.jupiter.api.Test
 
 import static groovy.test.GroovyAssert.shouldFail
-import static il.ac.openu.flue.JavaEbnf.V.TypeArgument
-import static il.ac.openu.flue.JavaEbnf.V.TypeArgumentList
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 import static il.ac.openu.flue.model.ebnf.EBNFTest.V.*
 import static il.ac.openu.flue.model.rule.Expression.Visitor
@@ -69,6 +67,95 @@ class EBNFTest {
             B >> C
             D >> C
         }.root == D
+
+        assert ebnf {
+            A >> B
+            B >> C
+            D >> C
+        }.root in ([A, D] as Set<NonTerminal>)
+    }
+
+    @Test
+    void testNonTerminalGraph() {
+        EBNF grammar = ebnf {
+            A >> B
+            A >> "G"
+            B >> "E" | C
+            C >> "F"
+            C >> A | ε
+            D >> {C} & [E & B] & "M" & "L" | ["R"]
+            E >> "Q"
+        }
+
+        assert grammar.nonTerminalGraph() == [
+                (A): [B].toSet(),
+                (B): [C].toSet(),
+                (C): [A].toSet(),
+                (D): [C, E, B].toSet(),
+                (E): [].toSet(),
+        ]
+    }
+
+    @Test
+    void testEntryPoints() {
+        assert ebnf {
+            A >> B
+            A >> "G"
+            B >> "E" | C
+            C >> "F"
+            C >> A | ε
+            D >> {C} & [E & B] & "M" & "L" | ["R"]
+            E >> "Q"
+        }.entryPoints() == [D] as Set
+
+        assert ebnf {
+            A >> B
+            B >> C
+            D >> C
+        }.entryPoints() == [A, D] as Set
+
+        assert ebnf(A) {
+            A >> B
+            B >> C
+            C >> A
+        }.entryPoints() == [] as Set
+    }
+
+    @Test
+    void testCycles() {
+        assert ebnf {
+            A >> B
+            A >> C
+            B >> C
+            C >> D
+            D >> E
+            E >> B
+        }.cycles() == [[B, C, D, E]] as Set
+
+        assert ebnf(A) {
+            A >> A
+            A >> B
+            B >> C
+            C >> D
+            D >> E
+            D >> A
+            E >> B
+        }.cycles() == [[A], [B, C, D, E], [A, B, C, D]] as Set
+
+        assert ebnf(A) {
+            A >> B
+            B >> C
+            C >> A
+            D >> E
+            E >> F
+            F >> B
+            F >> E
+        }.cycles() == [[A, B, C], [E, F]] as Set
+
+        assert ebnf(A) {
+            A >> B
+            B >> C
+        }.cycles() == [] as Set
     }
 
     @Test

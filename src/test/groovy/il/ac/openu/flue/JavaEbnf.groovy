@@ -714,7 +714,8 @@ class JavaEbnf {
                 ConstantExpression >> Expression
             }
 
-            println(java.follow())
+            println(java.entryPoints())
+            println(java.cycles().join("\n"))
         }
     }
 }
