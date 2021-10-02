@@ -720,7 +720,12 @@ class JavaEbnf {
         EBNF java = grammar()
 
         println(java.entryPoints())
-        println(java.cycles().join("\n"))
-        println(java.rules.size())
+        Set<List<NonTerminal>> x = java.cycles()
+        List<List<NonTerminal>> y = x.asList()
+
+        println(y.find{it == [Type, CompilationUnit, ConstantExpression]}? 1 : 2)
+
+
+        println(y.take(10).join("\n"))
     }
 }

@@ -22,8 +22,8 @@ class GoMetaBNF {
             Group       >> "(" & Expression &  ")"
             Option      >> "[" & Expression &  "]"
             Repetition  >> "{" & Expression &  "}"
-            Identifier  >> "[A-Za-z][A-Za-z0-9_]*"
-            Token       >> "\"[^\"]+\""
+            Identifier  >> ~"[A-Za-z][A-Za-z0-9_]*"
+            Token       >> ~"\"[^\"]+\""
         }
     }
 }

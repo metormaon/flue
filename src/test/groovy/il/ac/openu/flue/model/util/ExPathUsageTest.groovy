@@ -209,68 +209,110 @@ class ExPathUsageTest {
 
     @Test
     void testInlining() {
+        //Take the Java grammar
         EBNF java = JavaEbnf.grammar()
 
+        //Process a non terminal graph
         Map<NonTerminal, Set<NonTerminal>> graph = java.nonTerminalGraph()
 
+        //Prepare a set of all the non-terminals that were found part of a cycle
         Set<NonTerminal> cyclicNonTerminals = java.cycles(graph).flatten() as Set<NonTerminal>
 
+        //Prepare a set of all the non-terminals that were NOT found in a cycle. These may be replaced by their
+        //definition during inlining
         Set<NonTerminal> nonCyclicNonTerminals = graph.keySet() - cyclicNonTerminals
 
-        Closure<Boolean> matchInlineableNonTerminal = {Expression e ->
-            if (e instanceof NonTerminal && e in nonCyclicNonTerminals) {
-                Boolean.TRUE
-            } else {
-                null
+        //Prepare a dependency graph. It's the reversed graph of the nonTerminalGraph. Each node is a non
+        //terminal that does not participate in cycles, and the edges from it point to the non-terminals that
+        //are dependent on it.
+        Map<NonTerminal, Set<NonTerminal>> dependencyGraph =
+                nonCyclicNonTerminals.collectEntries {[it, [].toSet()]}
+
+        graph.each {referring, referredSet ->
+            referredSet.each { referred ->
+                if (referred in nonCyclicNonTerminals) {
+                    dependencyGraph[referred] << referring
+                }
             }
         }
 
-        language.rules.each{ Rule r ->
-            boolean active = true
+        //Nodes in the dependence graph that have no edges are entry points of the grammar.
+        Set<NonTerminal> entryPoints = dependencyGraph.findAll {!it.value}.keySet()
 
-            while(active) {
-                List<ExPath> exPaths = ExPath.match(r.definition, matchInlineableNonTerminal)
+        //Inlining algorithm:
+        //1. Find in graph a node with no edges (fullyInlined) - it means a nonTerminal that depends on no other
+        //non-cyclic nonTerminals, and is not an entry point. If there are none - we are done.
+        //2. Find in dependencyGraph all the nonTerminals that are based on fullyInlined, and replace their reference
+        //to fullyInlined with its definition
+        //3. Remove fullyInlined from graph. Remove its rules from rules, unless it's an entry point.
 
-                if(exPaths) {
-                    ExPath<?> exPath = exPaths[0]
-                    NonTerminal nonTerminal = exPath.path.last().expression as NonTerminal
+        boolean active
 
-                    Set<Rule> rules = java.ruleMap.get(nonTerminal)
+        do {
+            active = false
+            //Find any non terminal that is not dependent on other non terminals. It needs no further inlining, and
+            //may be inlined within its dependents
 
-                    if (rules) {
-                        Expression inlined
+            Map.Entry<NonTerminal, Set<NonTerminal>> fullyInlinedEntry =
+                    graph.find{ k, v -> !v && !(k in entryPoints)}
 
-                        if (rules.size() > 1) {
-                            inlined = new Or(rules.collect{it.definition})
-                        } else {
-                            inlined = rules[0].definition
-                        }
+            //If such fullyInlined exists (otherwise we are done)
+            if (fullyInlinedEntry) {
+                NonTerminal fullyInlined = fullyInlinedEntry.key
 
-                        //If the path includes the parent, we need to update the parent
-                        if (exPath.path.size() > 1) {
-                            ExPath.PathNode parent = exPath.path[exPath.path.size() - 2]
+                //Let's have its definition handy. First, we should retrieve the rules that expand it
+                List<Rule> expandingRules = java.ruleMap[fullyInlined]
 
-                            if (parent instanceof ExPath.PathMultinaryNode) {
-                                ExPath.PathMultinaryNode multinaryParent = parent as ExPath.PathMultinaryNode
-                                Multinary parentExpression = multinaryParent.expression as Multinary
-                                parentExpression.children[multinaryParent.positionOfNext] = inlined
-                            } else { //unary
-                                Unary parentExpression = parent.expression as Unary
-                                parentExpression.child = inlined
+                //If there only one rule that expends fullyInlined, we keep its definition. If there are multi,
+                //we should Or all the possible definitions.
+                Expression fullyInlinedDefinition = expandingRules.size() == 1? expandingRules[0].definition :
+                        new Or(expandingRules.collect{it.definition})
+
+                //For each non terminal that is dependent on the fullyInlined
+                dependencyGraph[fullyInlined].each { dependent ->
+                    //Grab the rules that expand the dependent, and for each of them
+                    java.ruleMap[dependent].each { rule ->
+                        //Extract the ExPaths of all the references to fullyInlined within the rule's definition
+                        List<ExPath> exPaths = ExPath.match(rule.definition, { Expression e ->
+                            e == fullyInlined ? Boolean.TRUE : null
+                        })
+
+                        //There may be several references, so for each ExPath
+                        exPaths.each { exPath ->
+                            //If the rule definition is merely the fullyInlined, replace the definition
+                            if (exPath.path.size() == 1) {
+                                rule.definition = fullyInlinedDefinition
+                            } else { //The fullyInlined is nested within a composite definition
+                                //Get the parent of the nonTerminal to be inlined
+                                ExPath.PathNode parent = exPath.path[exPath.path.size() - 2]
+
+                                //If the parent is multinary, we need to replace the relevant child
+                                if (parent instanceof ExPath.PathMultinaryNode) {
+                                    ExPath.PathMultinaryNode multinaryParent = parent as ExPath.PathMultinaryNode
+                                    Multinary parentExpression = multinaryParent.expression as Multinary
+                                    parentExpression.children[multinaryParent.positionOfNext] = fullyInlinedDefinition
+                                } else { //unary parent. Replacing its child
+                                    Unary parentExpression = parent.expression as Unary
+                                    parentExpression.child = fullyInlinedDefinition
+                                }
                             }
-                        } else {
-                            r.definition = inlined
                         }
-                    } else active = false
-                } else active = false
+                    }
+
+                    //This dependent is no longer dependent
+                    graph[dependent].remove(fullyInlined)
+                }
+
+                graph.remove(fullyInlined)
+
+                //Not really needed. But maybe for completion...
+                dependencyGraph.remove(fullyInlined)
+
+                java.ruleMap.remove(fullyInlined)
+                java.rules.removeAll {it.nonTerminal == fullyInlined}
+
+                active = true
             }
-        }
-
-        java.ruleMap.removeAll {it.key in nonCyclicNonTerminals}
-
-        java.rules = java.ruleMap.entrySet().collect { it.value.flatten()} as List<Rule>
-
-        println(java.rules.join("\n"))
-        println(java.rules.size())
+        } while(active)
     }
 }
