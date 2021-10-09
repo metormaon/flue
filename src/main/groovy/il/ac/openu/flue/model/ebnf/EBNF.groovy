@@ -4,6 +4,7 @@ package il.ac.openu.flue.model.ebnf
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 import il.ac.openu.flue.model.rule.Expression
+import il.ac.openu.flue.model.rule.Multinary
 import il.ac.openu.flue.model.rule.NonTerminal
 import il.ac.openu.flue.model.rule.Optional
 import il.ac.openu.flue.model.rule.Or
@@ -11,6 +12,8 @@ import il.ac.openu.flue.model.rule.Repeated
 import il.ac.openu.flue.model.rule.Rule
 import il.ac.openu.flue.model.rule.Terminal
 import il.ac.openu.flue.model.rule.Then
+import il.ac.openu.flue.model.rule.Unary
+import il.ac.openu.flue.model.util.ExPath
 
 import static il.ac.openu.flue.model.rule.Expression.Visitor
 
@@ -28,7 +31,7 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * }
  * </pre>
  *
- * The root rule in the above example is detected automatically to be A, since it's the first rule no other rule is
+ * The root rule in the above example is detected automatically to be A, since it's the first rule no other rule
  * is dependent on. It is possible to set the root explicitly:
  * <pre>
  *
@@ -100,13 +103,10 @@ class EBNF {
     //End of input terminal. A dollar, but not using the dollar symbol which cannot serve as a constant name
     public static final Terminal ṩ = new Terminal("ṩ")
 
-    //Empty terminal. Epsilon.
-    public static final Terminal ε = new Terminal("ε")
-
     //No direct construction of grammars
     private EBNF() {}
 
-    //Root rule = start rule
+    //Root non terminal = start non terminal
     NonTerminal root
 
     List<Rule> rules = []
@@ -145,10 +145,6 @@ class EBNF {
                     "Wrap with ebnf { }.")
         }
 
-//        if (context.get().rules.empty) {
-//            context.get().root = r.nonTerminal
-//        }
-
         context.get().rules += r
         r
     }
@@ -170,6 +166,14 @@ class EBNF {
         context.remove()
 
         ebnf
+    }
+
+    EBNF clone() {
+        EBNF copy = new EBNF()
+        copy.root = root
+        copy.rules = rules.collect()
+
+        copy
     }
 
     /**
@@ -213,7 +217,7 @@ class EBNF {
     }
 
     /**
-     * A method for automatically finding the root of a grammar, i.e. - it's entry rule
+     * A method for automatically finding the root of a grammar, i.e. - it's entry non terminal
      */
     private NonTerminal findRoot() {
         Set<NonTerminal> entryPoints = entryPoints()
@@ -286,6 +290,108 @@ class EBNF {
         cycle
     }
 
+    void inline(Map<NonTerminal, Set<NonTerminal>> graph = nonTerminalGraph()) {
+        //Prepare a set of all the non-terminals that were found part of a cycle
+        Set<NonTerminal> cyclicNonTerminals = cycles(graph).flatten() as Set<NonTerminal>
+
+        //Prepare a set of all the non-terminals that were NOT found in a cycle. These may be replaced by their
+        //definition during inlining
+        Set<NonTerminal> nonCyclicNonTerminals = graph.keySet() - cyclicNonTerminals
+
+        //Prepare a dependency graph. It's the reversed graph of the nonTerminalGraph. Each node is a non
+        //terminal that does not participate in cycles, and the edges from it point to the non-terminals that
+        //are dependent on it.
+        Map<NonTerminal, Set<NonTerminal>> dependencyGraph =
+                nonCyclicNonTerminals.collectEntries {[it, [].toSet()]}
+
+        graph.each {referring, referredSet ->
+            referredSet.each { referred ->
+                if (referred in nonCyclicNonTerminals) {
+                    dependencyGraph[referred] << referring
+                }
+            }
+        }
+
+        //Nodes in the dependence graph that have no edges are entry points of the grammar.
+        Set<NonTerminal> entryPoints = dependencyGraph.findAll {!it.value}.keySet()
+
+        //Inlining algorithm:
+        //1. Find in graph a node with no edges (fullyInlined) - it means a nonTerminal that depends on no other
+        //non-cyclic nonTerminals, and is not an entry point. If there are none - we are done.
+        //2. Find in dependencyGraph all the nonTerminals that are based on fullyInlined, and replace their reference
+        //to fullyInlined with its definition
+        //3. Remove fullyInlined from graph. Remove its rules from rules, unless it's an entry point.
+
+        boolean active
+
+        do {
+            active = false
+            //Find any non terminal that is not dependent on other non terminals. It needs no further inlining, and
+            //may be inlined within its dependents
+
+            Map.Entry<NonTerminal, Set<NonTerminal>> fullyInlinedEntry =
+                    graph.find{ k, v -> !v && !(k in entryPoints)}
+
+            //If such fullyInlined exists (otherwise we are done)
+            if (fullyInlinedEntry) {
+                NonTerminal fullyInlined = fullyInlinedEntry.key
+
+                //Let's have its definition handy. First, we should retrieve the rules that expand it
+                List<Rule> expandingRules = ruleMap[fullyInlined]
+
+                //If there only one rule that expends fullyInlined, we keep its definition. If there are multi,
+                //we should Or all the possible definitions.
+                Expression fullyInlinedDefinition = expandingRules.size() == 1? expandingRules[0].definition :
+                        new Or(expandingRules.collect{it.definition})
+
+                //For each non terminal that is dependent on the fullyInlined
+                dependencyGraph[fullyInlined].each { dependent ->
+                    //Grab the rules that expand the dependent, and for each of them
+                    ruleMap[dependent].each { rule ->
+                        //Extract the ExPaths of all the references to fullyInlined within the rule's definition
+                        List<ExPath> exPaths = ExPath.match(rule.definition, { Expression e ->
+                            e == fullyInlined ? Boolean.TRUE : null
+                        })
+
+                        //There may be several references, so for each ExPath
+                        exPaths.each { exPath ->
+                            //If the rule definition is merely the fullyInlined, replace the definition
+                            if (exPath.path.size() == 1) {
+                                rule.definition = fullyInlinedDefinition
+                            } else { //The fullyInlined is nested within a composite definition
+                                //Get the parent of the nonTerminal to be inlined
+                                ExPath.PathNode parent = exPath.path[exPath.path.size() - 2]
+
+                                //If the parent is multinary, we need to replace the relevant child
+                                if (parent instanceof ExPath.PathMultinaryNode) {
+                                    ExPath.PathMultinaryNode multinaryParent = parent as ExPath.PathMultinaryNode
+                                    Multinary parentExpression = multinaryParent.expression as Multinary
+                                    parentExpression.children[multinaryParent.positionOfNext] = fullyInlinedDefinition
+                                } else { //unary parent. Replacing its child
+                                    Unary parentExpression = parent.expression as Unary
+                                    parentExpression.child = fullyInlinedDefinition
+                                }
+                            }
+                        }
+                    }
+
+                    //This dependent is no longer dependent
+                    graph[dependent].remove(fullyInlined)
+                }
+
+                graph.remove(fullyInlined)
+
+                //Not really needed. But maybe for completion...
+                dependencyGraph.remove(fullyInlined)
+
+                ruleMap.remove(fullyInlined)
+                rules.removeAll {it.nonTerminal == fullyInlined}
+
+                active = true
+            }
+        } while(active)
+    }
+
 
     /**
      * A method for finding all rules that comply with a certain filter. The rule function is a closure that accepts
@@ -294,14 +400,6 @@ class EBNF {
     Set<Rule> select(@ClosureParams(value = SimpleType, options = "il.ac.openu.flue.model.rule.Rule")
                             Closure<Boolean> ruleFunction) {
         rules.findAll{ruleFunction(it)}.toSet()
-    }
-
-    /**
-     * Returns the AST of a grammar. TODO: complete the AST flow
-     * @return
-     */
-    AST ast() {
-        new AST(ruleMap)
     }
 
     /**

@@ -57,6 +57,13 @@ class EBNFTest {
 
         assert ebnf {
             A >> B
+            A >> C
+            B >> "."
+            C >> "+"
+        }.root == A
+
+        assert ebnf {
+            A >> B
             B >> C
             D >> C
         }.root == A
@@ -156,6 +163,41 @@ class EBNFTest {
             A >> B
             B >> C
         }.cycles() == [] as Set
+    }
+
+    @Test
+    void testInlining() {
+        EBNF grammar = ebnf {
+            A >> B
+            B >> C & D
+            C >> ~"sd"
+            D >> "Joe"
+        }
+
+        EBNF inlined = ebnf {
+            A >> ~"sd" & "Joe"
+        }
+
+        grammar.inline()
+
+        assert grammar.rules == inlined.rules
+
+        grammar = ebnf {
+            A >> B
+            B >> C & D
+            C >> B
+            D >> "abcde"
+        }
+
+        grammar.inline()
+
+        inlined = ebnf {
+            A >> B
+            B >> C & "abcde"
+            C >> B
+        }
+
+        assert grammar.rules == inlined.rules
     }
 
     @Test

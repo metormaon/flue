@@ -25,5 +25,8 @@ class GoMetaBNF {
             Identifier  >> ~"[A-Za-z][A-Za-z0-9_]*"
             Token       >> ~"\"[^\"]+\""
         }
+
+        println("Cycles:")
+        println(goMetaBNF.cycles().join("\n"))
     }
 }
