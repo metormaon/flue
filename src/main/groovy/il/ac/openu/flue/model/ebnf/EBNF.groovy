@@ -291,33 +291,23 @@ class EBNF {
     }
 
     void inline(Map<NonTerminal, Set<NonTerminal>> graph = nonTerminalGraph()) {
-        //Prepare a set of all the non-terminals that were found part of a cycle
-        Set<NonTerminal> cyclicNonTerminals = cycles(graph).flatten() as Set<NonTerminal>
-
-        //Prepare a set of all the non-terminals that were NOT found in a cycle. These may be replaced by their
-        //definition during inlining
-        Set<NonTerminal> nonCyclicNonTerminals = graph.keySet() - cyclicNonTerminals
-
         //Prepare a dependency graph. It's the reversed graph of the nonTerminalGraph. Each node is a non
-        //terminal that does not participate in cycles, and the edges from it point to the non-terminals that
-        //are dependent on it.
+        //terminal, and the edges from it point to the non-terminals that are dependent on it.
         Map<NonTerminal, Set<NonTerminal>> dependencyGraph =
-                nonCyclicNonTerminals.collectEntries {[it, [].toSet()]}
+                graph.values().flatten().collectEntries {[it, [].toSet()]}
 
         graph.each {referring, referredSet ->
             referredSet.each { referred ->
-                if (referred in nonCyclicNonTerminals) {
-                    dependencyGraph[referred] << referring
-                }
+                dependencyGraph[referred] << referring
             }
         }
 
-        //Nodes in the dependence graph that have no edges are entry points of the grammar.
-        Set<NonTerminal> entryPoints = dependencyGraph.findAll {!it.value}.keySet()
+        //The entry points of the grammar should not be eliminated
+        Set<NonTerminal> entryPoints = entryPoints()
 
         //Inlining algorithm:
         //1. Find in graph a node with no edges (fullyInlined) - it means a nonTerminal that depends on no other
-        //non-cyclic nonTerminals, and is not an entry point. If there are none - we are done.
+        //nonTerminals, and is not an entry point. If there are none - we are done.
         //2. Find in dependencyGraph all the nonTerminals that are based on fullyInlined, and replace their reference
         //to fullyInlined with its definition
         //3. Remove fullyInlined from graph. Remove its rules from rules, unless it's an entry point.

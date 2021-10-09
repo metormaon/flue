@@ -719,13 +719,20 @@ class JavaEbnf {
     static void main(String[] args) {
         EBNF java = grammar()
 
-        println(java.entryPoints())
-        Set<List<NonTerminal>> x = java.cycles()
-        List<List<NonTerminal>> y = x.asList()
+        println(java.rules.size())
 
-        println(y.find{it == [Type, CompilationUnit, ConstantExpression]}? 1 : 2)
+        java.inline()
 
-
-        println(y.take(10).join("\n"))
+        println(java.rules.size())
+//
+//
+//        println(java.entryPoints())
+//        Set<List<NonTerminal>> x = java.cycles()
+//        List<List<NonTerminal>> y = x.asList()
+//
+//        println(y.find{it == [Type, CompilationUnit, ConstantExpression]}? 1 : 2)
+//
+//
+//        println(y.take(10).join("\n"))
     }
 }
