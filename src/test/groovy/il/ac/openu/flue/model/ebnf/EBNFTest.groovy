@@ -490,6 +490,9 @@ class EBNFTest {
         assert ebnf { A >> B }.nullable() == [(A): false]
         assert ebnf { A >> "w" }.nullable() == [(A): false]
 
+        assert ebnf { A >> +{"a"} }.nullable() == [(A): false]
+        assert ebnf { A >> {"a"} }.nullable() == [(A): true]
+
         EBNF grammar = ebnf {
             A >> B
             A >> "G"

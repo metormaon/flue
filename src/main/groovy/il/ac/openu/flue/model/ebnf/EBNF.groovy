@@ -707,7 +707,7 @@ class EBNF {
 
         @Override
         Boolean visit(Repeated repeated) {
-            repeated.child.accept(this)
+            !repeated.atLeastOne || repeated.child.accept(this)
         }
 
         @Override
