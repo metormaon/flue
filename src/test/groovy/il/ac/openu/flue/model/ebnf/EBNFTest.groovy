@@ -493,6 +493,15 @@ class EBNFTest {
         assert ebnf { A >> +{"a"} }.nullable() == [(A): false]
         assert ebnf { A >> {"a"} }.nullable() == [(A): true]
 
+        assert ebnf { A >> +{B | "a"} }.nullable() == [(A): false]
+        assert ebnf { A >> B & ["a"]; B >> ε }.nullable() == [(A): true, (B): true]
+        assert ebnf { A >> B & ["a"]; B >> "d" }.nullable() == [(A): false, (B): false]
+        assert ebnf { A >> "a" & [B] }.nullable() == [(A): false]
+        assert ebnf { A >> B | [C] }.nullable() == [(A): true]
+        assert ebnf { A >> "a" | B; B >> ε}.nullable() == [(A): true, (B): true]
+        assert ebnf { A >> "a" | B; B >> "s" }.nullable() == [(A): false, (B): false]
+
+
         EBNF grammar = ebnf {
             A >> B
             A >> "G"

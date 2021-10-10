@@ -550,7 +550,7 @@ class EBNF {
 
                                 //Calculate the first of the rest of the sequence, and add to the follow of the
                                 //current child
-                                follow.merge(v, restOfSequence.accept(firstVisitor) - [ε],
+                                follow.merge(v, restOfSequence.accept(firstVisitor) - [Terminal.ε],
                                         (Set<Terminal> oldFirst, Set<Terminal> newFirst) ->
                                                 oldFirst + newFirst)
                             }
@@ -619,7 +619,7 @@ class EBNF {
                 //For each of these non terminals, add to their follow the current rule's non-terminal's follow,
                 //as Rule #3 suggests
                 nonTerminalsAtEnd.forEach { endingNonTerminal ->
-                    follow.merge(endingNonTerminal, follow.get(rule.nonTerminal, new HashSet<Terminal>()) - [ε],
+                    follow.merge(endingNonTerminal, follow.get(rule.nonTerminal, new HashSet<Terminal>()) - [Terminal.ε],
                             (Set<Terminal> oldFirst, Set<Terminal> newFirst) -> oldFirst + newFirst)
                 }
             }
@@ -690,7 +690,12 @@ class EBNF {
 
         @Override
         Boolean visit(Then then) {
-            then.children[0].accept(this)
+            boolean result = true
+            then.children.each {
+                result &= it.accept(this)
+            }
+
+            result
         }
 
         @Override
