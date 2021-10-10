@@ -721,9 +721,7 @@ class JavaEbnf {
 
         println(java.rules.size())
 
-        java.inline()
-
-        println(java.rules.size())
+        println(java.inlined().rules.size())
 //
 //
 //        println(java.entryPoints())
