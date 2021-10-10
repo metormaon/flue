@@ -112,10 +112,7 @@ class EBNF {
     List<Rule> rules = []
 
     //For algorithmic convenience, we keep also a map from non-terminal to all of its resolving rules
-    @Lazy
-    Map<NonTerminal, List<Rule>> ruleMap = rules.groupBy {
-        it.nonTerminal
-    }
+    Map<NonTerminal, List<Rule>> ruleMap
 
     /**
      * Grammar factory. Creates an EBNF instance by parsing the rules in the closure. Finds the root by itself.
@@ -162,16 +159,38 @@ class EBNF {
         //Grab the instance from the ThreadLocal
         EBNF ebnf = context.get()
 
+        //Calculate ruleMap
+        ebnf.ruleMap = ebnf.rules.groupBy {
+            it.nonTerminal
+        }
+
         //Clean the ThreadLocal for this thread. We are done with it
         context.remove()
 
         ebnf
     }
 
+    /**
+     * Deep copies a grammar
+     */
     EBNF clone() {
         EBNF copy = new EBNF()
         copy.root = root
-        copy.rules = rules.collect()
+        copy.rules = rules.collect {Rule rule ->
+            new Rule(rule.nonTerminal, rule.definition.accept(new Visitor<Expression>() {
+                @Override Expression visit(Then then) { new Then(then.children.collect {it.accept(this)}) }
+                @Override Expression visit(Or or) { new Or(or.children.collect {it.accept(this)}) }
+                @Override Expression visit(Optional optional) { new Optional(optional.child.accept(this)) }
+                @Override Expression visit(Repeated repeated) { new Repeated(repeated.child.accept(this),
+                        repeated.separator, repeated.atLeastOne) }
+                @Override Expression visit(NonTerminal nonTerminal) { nonTerminal }
+                @Override Expression visit(Terminal terminal) { terminal }
+            }))
+        }
+
+        copy.ruleMap = copy.rules.groupBy {
+            it.nonTerminal
+        }
 
         copy
     }
@@ -290,7 +309,9 @@ class EBNF {
         cycle
     }
 
-    void inline(Map<NonTerminal, Set<NonTerminal>> graph = nonTerminalGraph()) {
+    EBNF inlined(Map<NonTerminal, Set<NonTerminal>> graph = nonTerminalGraph()) {
+        EBNF newGrammar = clone()
+
         //Prepare a dependency graph. It's the reversed graph of the nonTerminalGraph. Each node is a non
         //terminal, and the edges from it point to the non-terminals that are dependent on it.
         Map<NonTerminal, Set<NonTerminal>> dependencyGraph =
@@ -327,7 +348,7 @@ class EBNF {
                 NonTerminal fullyInlined = fullyInlinedEntry.key
 
                 //Let's have its definition handy. First, we should retrieve the rules that expand it
-                List<Rule> expandingRules = ruleMap[fullyInlined]
+                List<Rule> expandingRules = newGrammar.ruleMap[fullyInlined]
 
                 //If there only one rule that expends fullyInlined, we keep its definition. If there are multi,
                 //we should Or all the possible definitions.
@@ -337,7 +358,7 @@ class EBNF {
                 //For each non terminal that is dependent on the fullyInlined
                 dependencyGraph[fullyInlined].each { dependent ->
                     //Grab the rules that expand the dependent, and for each of them
-                    ruleMap[dependent].each { rule ->
+                    newGrammar.ruleMap[dependent].each { rule ->
                         //Extract the ExPaths of all the references to fullyInlined within the rule's definition
                         List<ExPath> exPaths = ExPath.match(rule.definition, { Expression e ->
                             e == fullyInlined ? Boolean.TRUE : null
@@ -374,12 +395,14 @@ class EBNF {
                 //Not really needed. But maybe for completion...
                 dependencyGraph.remove(fullyInlined)
 
-                ruleMap.remove(fullyInlined)
-                rules.removeAll {it.nonTerminal == fullyInlined}
+                newGrammar.ruleMap.remove(fullyInlined)
+                newGrammar.rules.removeAll {it.nonTerminal == fullyInlined}
 
                 active = true
             }
         } while(active)
+
+        newGrammar
     }
 
 

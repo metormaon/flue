@@ -178,9 +178,7 @@ class EBNFTest {
             A >> ~"sd" & "Joe"
         }
 
-        grammar.inline()
-
-        assert grammar.rules == inlined.rules
+        grammar.inlined().rules == inlined.rules
 
         grammar = ebnf {
             A >> B
@@ -189,15 +187,13 @@ class EBNFTest {
             D >> "abcde"
         }
 
-        grammar.inline()
-
         inlined = ebnf {
             A >> B
             B >> C & "abcde"
             C >> B
         }
 
-        assert grammar.rules == inlined.rules
+        assert grammar.inlined().rules == inlined.rules
     }
 
     @Test
