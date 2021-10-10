@@ -667,7 +667,7 @@ class EBNF {
 
         @Override
         Set<Terminal> visit(Repeated repeated) {
-            repeated.child.accept(this)
+            repeated.child.accept(this) + (repeated.atLeastOne? [] : [new Terminal("ε")])
         }
 
         @Override

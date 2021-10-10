@@ -457,26 +457,28 @@ class EBNFTest {
 
     @Test
     void testFirst() {
-        //Incomplete
-        assert ebnf { A >> B }.first() == materialize([A: []])
+        use(EBNFExtension) {
+            //Incomplete
+            assert ebnf { A >> B }.first() == materialize([A: []])
 
-        EBNF grammar = ebnf {
-            A >> B
-            A >> "G"
-            B >> "E" | C
-            C >> "F"
-            C >> A | ε
-            D >> {C} & [E] & "M" & "L" | ["R"]
-            E >> "Q"
+            EBNF grammar = ebnf {
+                A >> B
+                A >> "G"
+                B >> "E" | C
+                C >> "F"
+                C >> A | ε
+                D >> { C } & [E] & "M" & "L" | ["R"]
+                E >> "Q" | +{ "J" }
+            }
+
+            assert grammar.first() == materialize([
+                    A: ["E", "F", "G", "ε"],
+                    B: ["E", "F", "G", "ε"],
+                    C: ["F", "E", "G", "ε"],
+                    D: ["F", "E", "G", "ε", "Q", "M", "R", "J"],
+                    E: ["Q", "J"]
+            ])
         }
-
-        assert grammar.first() == materialize([
-                A: ["E", "F", "G", "ε"],
-                B: ["E", "F", "G", "ε"],
-                C: ["F", "E", "G", "ε"],
-                D: ["F", "E", "G", "ε", "Q", "M", "R"],
-                E: ["Q"]
-        ])
     }
 
     @Test
