@@ -13,7 +13,7 @@ import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
 class EbnfEbnf {
     static enum V implements NonTerminal {
         lower, upper, digit, special, character, empty, lhs, option, repetition, sequence, rhs, ebnf_rule,
-            ebnf_description
+            ebnf_description, string
     }
 
     static void main(String[] args) {
@@ -23,11 +23,12 @@ class EbnfEbnf {
             digit >> ~"[0-9]"
             special >> ~"[\\-_\"&’()*+,./:;<=>]"
             character >> lower | upper | digit | special
+            string >> "\"" & character & {character} & "\""
             empty >> Terminal.ε
             lhs >> lower & {["_"] & lower}
-            option >> [rhs]
-            repetition >> {rhs}
-            sequence >> empty | {character | lhs | option | repetition}
+            option >> "[" & rhs & "]"
+            repetition >> "{" & rhs "}"
+            sequence >> empty | {string | lhs | option | repetition}
             rhs >> sequence & { "|" & sequence}
             ebnf_rule >> lhs & ":=" & rhs
             ebnf_description >> {ebnf_rule}
