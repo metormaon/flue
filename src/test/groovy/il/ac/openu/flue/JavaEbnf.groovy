@@ -719,9 +719,12 @@ class JavaEbnf {
     static void main(String[] args) {
         EBNF java = grammar()
 
-        println(java.rules.size())
+        println(java.cycles().join("\n"))
+        println()
+        println(java.entryPoints())
 
-        println(java.inlined().rules.size())
+
+
 //
 //
 //        println(java.entryPoints())

@@ -134,6 +134,8 @@ class Then extends Multinary {
 class Optional extends Unary {
     Optional(Expression child) { super(child) }
     Optional(List<?> l) { this(l[0] as Expression) }
+    Optional(String s) { this(new Terminal(s)) }
+    Optional(Pattern p) { this(new Terminal(p)) }
     @Override <T> T accept(Visitor<T> v) { v.visit(this) }
     @Override String toString() { "[" + child + "]" }
 }
@@ -146,6 +148,10 @@ class Repeated extends Unary {
         { super(child); this.separator = separator; this.atLeastOne = atLeastOne }
     Repeated(Closure<?> child, Terminal separator=null, boolean atLeastOne=false) {
         this(child() as Expression); this.separator = separator; this.atLeastOne = atLeastOne }
+    Repeated(String s, Terminal separator=null, boolean atLeastOne=false)
+        { this(new Terminal(s)) }
+    Repeated(Pattern p, Terminal separator=null, boolean atLeastOne=false)
+        { this(new Terminal(p)) }
     @Override <T> T accept(Visitor<T> v) { v.visit(this) }
     @Override String toString() { (atLeastOne? "+" : "") + "{" + child + "}" + (separator? "/\"${separator.terminal}\"" : "") }
 }
