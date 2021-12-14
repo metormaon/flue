@@ -20,7 +20,7 @@ class ExPathUsageTest {
         Terminal separator
     }
 
-    enum NT implements NonTerminal {A,B,C,D}
+    enum NT implements Variable {A,B,C,D}
 
     EBNF language
     EBNF transformedLanguage

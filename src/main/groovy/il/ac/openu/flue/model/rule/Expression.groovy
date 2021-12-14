@@ -1,6 +1,7 @@
 package il.ac.openu.flue.model.rule
 
 import groovy.transform.EqualsAndHashCode
+import groovy.transform.InheritConstructors
 import groovy.transform.SelfType
 import il.ac.openu.flue.model.ebnf.EBNF
 import il.ac.openu.flue.model.rule.assist.AtLeastOneClosure
@@ -51,7 +52,7 @@ trait Expression {
         T visit(Or or) { null }
         T visit(Optional optional) { null }
         T visit(Repeated repeated) { null }
-        T visit(NonTerminal nonTerminal) { null }
+        T visit(Variable nonTerminal) { null }
         T visit(Terminal terminal) { null }
     }
 }
@@ -93,7 +94,7 @@ class Terminal implements Expression {
 }
 
 @EqualsAndHashCode
-trait NonTerminal implements Labeled, Expression {
+trait Variable implements Labeled, Expression {
     Rule rightShift(Repeated e) { EBNF.add(new Rule(this, e)) }
     Rule rightShift(Expression e) { EBNF.add(new Rule(this, e)) }
     Rule rightShift(List<?> l) { EBNF.add(new Rule(this, new Optional(l))) }
@@ -130,6 +131,7 @@ class Then extends Multinary {
     String toString() { "(" + children.join(")&(") + ")" }
 }
 
+@InheritConstructors
 @EqualsAndHashCode(callSuper=true)
 class Optional extends Unary {
     Optional(Expression child) { super(child) }

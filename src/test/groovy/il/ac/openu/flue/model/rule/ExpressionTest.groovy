@@ -8,7 +8,7 @@ import static il.ac.openu.flue.model.rule.Expression.Visitor
  * @author Noam Rotem
  */
 class ExpressionTest extends Specification {
-    enum V implements NonTerminal {A, B, C}
+    enum V implements Variable {A, B, C}
 
     Visitor<String> visitor = new Visitor<String>() {
         @Override
@@ -40,7 +40,7 @@ class ExpressionTest extends Specification {
         }
 
         @Override
-        String visit(NonTerminal nonTerminal) {
+        String visit(Variable nonTerminal) {
             nonTerminal.toString() + ";"
         }
 

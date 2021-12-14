@@ -38,6 +38,10 @@ class EBNFExtension {
         new Then(new Terminal(self), r)
     }
 
+    static Then power(String self, Expression r) {
+        new Then(new Terminal(self), r)
+    }
+
     static Then and(Pattern self, Expression r) {
         new Then(new Terminal(self), r)
     }

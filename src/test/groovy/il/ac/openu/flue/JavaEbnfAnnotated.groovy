@@ -1,7 +1,7 @@
 package il.ac.openu.flue
 
 import il.ac.openu.flue.model.ebnf.EBNF
-import il.ac.openu.flue.model.rule.NonTerminal
+import il.ac.openu.flue.model.rule.Variable
 
 import static il.ac.openu.flue.JavaEbnf.V.*
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
@@ -10,7 +10,7 @@ import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
  * @author Noam Rotem
  */
 class JavaEbnfAnnotated {
-    static enum V implements NonTerminal {Identifier, IdentifierChars, JavaLetter, JavaLetterOrDigit, TypeIdentifier,
+    static enum V implements Variable {Identifier, IdentifierChars, JavaLetter, JavaLetterOrDigit, TypeIdentifier,
     UnqualifiedMethodIdentifier, Literal, IntegerLiteral, FloatingPointLiteral, BooleanLiteral, CharacterLiteral,
     StringLiteral, NullLiteral, Type, PrimitiveType, ReferenceType, Annotation, NumericType, IntegralType,
     FloatingPointType, ClassOrInterfaceType, TypeVariable, ArrayType, ClassType, InterfaceType, TypeArguments,

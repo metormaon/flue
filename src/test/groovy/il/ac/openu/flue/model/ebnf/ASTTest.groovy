@@ -1,6 +1,6 @@
 package il.ac.openu.flue.model.ebnf
 
-//import il.ac.openu.flue.model.rule.NonTerminal
+//import il.ac.openu.flue.model.rule.Variable
 //import org.junit.jupiter.api.BeforeEach
 //import org.junit.jupiter.api.Test
 //
@@ -11,7 +11,7 @@ package il.ac.openu.flue.model.ebnf
  * @author Noam Rotem
  */
 class ASTTest {
-//    static enum V implements NonTerminal { A, B, C, D, E, F, G }
+//    static enum V implements Variable { A, B, C, D, E, F, G }
 //
 //    @BeforeEach
 //    void setUp() {

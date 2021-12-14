@@ -55,8 +55,8 @@ class ExPath<T> {
                 case Optional:
                     "[]"
                     break
-                case NonTerminal:
-                    expression as NonTerminal
+                case Variable:
+                    expression as Variable
                     break
                 case Terminal:
                     "'" + (expression as Terminal).terminal + "'"
@@ -226,7 +226,7 @@ class ExPath<T> {
         }
 
         @Override
-        List<ExPath<T>> visit(NonTerminal nonTerminal) {
+        List<ExPath<T>> visit(Variable nonTerminal) {
             //If it's this non terminal that we are looking for - put it in the result!
             T info = criterion.call(nonTerminal)
             if (info) {

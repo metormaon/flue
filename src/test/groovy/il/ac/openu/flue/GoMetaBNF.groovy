@@ -1,7 +1,7 @@
 package il.ac.openu.flue
 
 import il.ac.openu.flue.model.ebnf.EBNF
-import il.ac.openu.flue.model.rule.NonTerminal
+import il.ac.openu.flue.model.rule.Variable
 
 import static il.ac.openu.flue.GoMetaBNF.V.*
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
@@ -10,7 +10,7 @@ import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
  * @author Yossi Gil 
  */
 class GoMetaBNF {
-    static enum V implements NonTerminal { Production, Identifier, Expression, Alternative, Term, Token, Group, Option,
+    static enum V implements Variable { Production, Identifier, Expression, Alternative, Term, Token, Group, Option,
     Repetition }
 
     static void main(String[] args) {

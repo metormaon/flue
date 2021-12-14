@@ -1,7 +1,7 @@
 package il.ac.openu.flue
 
 import il.ac.openu.flue.model.ebnf.EBNF
-import il.ac.openu.flue.model.rule.NonTerminal
+import il.ac.openu.flue.model.rule.Variable
 import il.ac.openu.flue.model.rule.Terminal
 
 import static il.ac.openu.flue.EbnfEbnf.V.*
@@ -11,7 +11,7 @@ import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
  * @author Yossi Gil 
  */
 class EbnfEbnf {
-    static enum V implements NonTerminal {
+    static enum V implements Variable {
         lower, upper, digit, special, character, empty, lhs, option, repetition, sequence, rhs, ebnf_rule,
             ebnf_description, string
     }
@@ -27,7 +27,7 @@ class EbnfEbnf {
             empty >> Terminal.ε
             lhs >> lower & {["_"] & lower}
             option >> "[" & rhs & "]"
-            repetition >> "{" & rhs "}"
+//            repetition >> rhs "{" & rhs "}"
             sequence >> empty | {string | lhs | option | repetition}
             rhs >> sequence & { "|" & sequence}
             ebnf_rule >> lhs & ":=" & rhs

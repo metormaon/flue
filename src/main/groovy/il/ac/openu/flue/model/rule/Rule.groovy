@@ -4,10 +4,10 @@ package il.ac.openu.flue.model.rule
  * @author Noam Rotem
  */
 class Rule {
-    NonTerminal nonTerminal;
+    Variable nonTerminal;
     Expression definition;
 
-    Rule(NonTerminal nonTerminal, Expression definition) {
+    Rule(Variable nonTerminal, Expression definition) {
         this.nonTerminal = nonTerminal
         this.definition = definition
     }

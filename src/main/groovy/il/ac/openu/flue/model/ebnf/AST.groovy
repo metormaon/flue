@@ -2,7 +2,7 @@ package il.ac.openu.flue.model.ebnf
 
 //import il.ac.openu.flue.model.ebnf.element.Variable
 //import il.ac.openu.flue.model.rule.Expression
-//import il.ac.openu.flue.model.rule.NonTerminal
+//import il.ac.openu.flue.model.rule.Variable
 //import il.ac.openu.flue.model.rule.Optional
 //import il.ac.openu.flue.model.rule.Or
 //import il.ac.openu.flue.model.rule.Repeated
@@ -137,11 +137,11 @@ class AST {
 //                        // optional...
 //                        astClasses[variable.label].isOptional = true
 //                    }
-//                } else if (thenCount == 1 && thenElements[0] instanceof NonTerminal) {
+//                } else if (thenCount == 1 && thenElements[0] instanceof Variable) {
 //                    //A -> B - means that B implements A, which is an interface.
 //                    ASTClass astClass = astClasses[variable.label]
 //                    astClass.isInterface = true
-//                    astClasses[(thenElements[0] as NonTerminal).variable.label].parents += astClass
+//                    astClasses[(thenElements[0] as Variable).variable.label].parents += astClass
 //                } else if (orCount == 1) {
 //                    //A -> B & C, A -> [B], A -> {B} - mean that A is a class with the right side as fields
 //                    ASTClass astClass = astClasses[variable.label]
@@ -170,8 +170,8 @@ class AST {
 //        switch (e) {
 //            case Terminal:
 //                return new ASTField(name: "input${ASTField.sequences.input.getAndIncrement()}", isString: true)
-//            case NonTerminal:
-//                Variable variable = (e as NonTerminal).variable
+//            case Variable:
+//                Variable variable = (e as Variable).variable
 //                String type = variable.label.uncapitalize()
 //                return new ASTField(name: "$type${ASTField.sequences[type].getAndIncrement()}",
 //                        astClass: astClasses[variable.label])
@@ -196,7 +196,7 @@ class AST {
 //            @Override Boolean visit(Or or) { true }
 //            @Override Boolean visit(Optional optional) { true }
 //            @Override Boolean visit(Repeated repeated) { true }
-//            @Override Boolean visit(NonTerminal nonTerminal) {
+//            @Override Boolean visit(Variable nonTerminal) {
 //                if (nonTerminal.variable in visited) {
 //                    true
 //                } else {

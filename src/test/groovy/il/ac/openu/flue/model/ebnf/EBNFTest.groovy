@@ -1,13 +1,13 @@
 package il.ac.openu.flue.model.ebnf
 
 import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
-import il.ac.openu.flue.model.rule.NonTerminal
 import il.ac.openu.flue.model.rule.Or
 import il.ac.openu.flue.model.rule.Repeated
 import il.ac.openu.flue.model.rule.Optional
 import il.ac.openu.flue.model.rule.Rule
 import il.ac.openu.flue.model.rule.Terminal
 import il.ac.openu.flue.model.rule.Then
+import il.ac.openu.flue.model.rule.Variable
 import org.junit.jupiter.api.Test
 
 import static groovy.test.GroovyAssert.shouldFail
@@ -20,7 +20,7 @@ import static il.ac.openu.flue.model.rule.Terminal.ε
  * @author Noam Rotem
  */
 class EBNFTest {
-    static enum V implements NonTerminal { A, B, C, D, E, F, G }
+    static enum V implements Variable { A, B, C, D, E, F, G }
 
     static def t(String s) {
         new Terminal(s)
@@ -79,7 +79,7 @@ class EBNFTest {
             A >> B
             B >> C
             D >> C
-        }.root in ([A, D] as Set<NonTerminal>)
+        }.root in ([A, D] as Set<Variable>)
     }
 
     @Test
@@ -435,7 +435,7 @@ class EBNFTest {
                 }
 
                 @Override
-                Boolean visit(NonTerminal nonTerminal) {
+                Boolean visit(Variable nonTerminal) {
                     false
                 }
 
@@ -582,13 +582,13 @@ class EBNFTest {
         ])
     }
 
-    static Map<NonTerminal, Set<Terminal>> materialize(Map<String, List<String>> expected) {
+    static Map<Variable, Set<Terminal>> materialize(Map<String, List<String>> expected) {
         expected.collectEntries {
             v , t -> {
                 [valueOf(v), t.collect {
                     new Terminal(it)
                 }.toSet()]
             }
-        } as Map<NonTerminal, Set<Terminal>>
+        } as Map<Variable, Set<Terminal>>
     }
 }

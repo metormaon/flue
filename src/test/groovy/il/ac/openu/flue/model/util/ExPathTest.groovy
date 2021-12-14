@@ -11,7 +11,7 @@ import static il.ac.openu.flue.model.util.ExPathTest.NT.*
  * @author Noam Rotem
  */
 class ExPathTest extends Specification {
-    enum NT implements NonTerminal {
+    enum NT implements Variable {
         A, B, C, D
     }
 

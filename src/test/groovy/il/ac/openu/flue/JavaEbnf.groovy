@@ -2,7 +2,7 @@ package il.ac.openu.flue
 
 import il.ac.openu.flue.model.ebnf.EBNF
 import il.ac.openu.flue.model.ebnf.extension.EBNFExtension
-import il.ac.openu.flue.model.rule.NonTerminal
+import il.ac.openu.flue.model.rule.Variable
 
 import static il.ac.openu.flue.JavaEbnf.V.*
 import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
@@ -11,7 +11,7 @@ import static il.ac.openu.flue.model.ebnf.EBNF.ebnf
  * @author Noam Rotem
  */
 class JavaEbnf {
-    static enum V implements NonTerminal {Identifier, IdentifierChars, JavaLetter, JavaLetterOrDigit, TypeIdentifier,
+    static enum V implements Variable {Identifier, IdentifierChars, JavaLetter, JavaLetterOrDigit, TypeIdentifier,
     UnqualifiedMethodIdentifier, Literal, IntegerLiteral, FloatingPointLiteral, BooleanLiteral, CharacterLiteral,
     StringLiteral, NullLiteral, Type, PrimitiveType, ReferenceType, Annotation, NumericType, IntegralType,
     FloatingPointType, ClassOrInterfaceType, TypeVariable, ArrayType, ClassType, InterfaceType, TypeArguments,
@@ -728,8 +728,8 @@ class JavaEbnf {
 //
 //
 //        println(java.entryPoints())
-//        Set<List<NonTerminal>> x = java.cycles()
-//        List<List<NonTerminal>> y = x.asList()
+//        Set<List<Variable>> x = java.cycles()
+//        List<List<Variable>> y = x.asList()
 //
 //        println(y.find{it == [Type, CompilationUnit, ConstantExpression]}? 1 : 2)
 //
