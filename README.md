@@ -6,6 +6,6 @@ For further details, please refer to:
 
 [The full report in PDF format](Flue-report.pdf) 
 
-[Up to date online LaTeX sources](https://www.overleaf.com/project/615b56838926f0e749c60279)
+[Up-to-date online LaTeX sources](https://www.overleaf.com/read/fgfzqnzvyyjg)
 
 [A local version of LaTex sources](Flue-report-sources.zip)
