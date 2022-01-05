@@ -4,7 +4,9 @@ Flue is a Groovy library that allows specifying language grammatical rules by a 
 
 For further details, please refer to:
 
-[The full report in PDF format](Flue-report.pdf) 
+[A local version of the full report in PDF format](Flue-report.pdf) 
+
+[The full report on the Open University website](https://www.openu.ac.il/Lists/MediaServer_Documents/Academic/CS/NoamRotem-YossiGil.pdf) 
 
 [Up-to-date online LaTeX sources](https://www.overleaf.com/read/fgfzqnzvyyjg)
 
